@@ -133,6 +133,8 @@ void setup() {
         Rfid_Init();
     #endif
 
+    // Init audio before system to avoid speaker noise
+    AudioPlayer_Init();
     System_Init();
 
     memset(&gPlayProperties, 0, sizeof(gPlayProperties));
@@ -211,7 +213,6 @@ void setup() {
         Port_Init();
     #endif
     Ftp_Init();
-    AudioPlayer_Init();
     Mqtt_Init();
     Battery_Init();
     Button_Init();
