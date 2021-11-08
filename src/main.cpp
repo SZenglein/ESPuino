@@ -130,6 +130,7 @@ void setup() {
     Log_Init();
     Queues_Init();
     #ifdef RFID_READER_TYPE_PN5180
+        Button_Init();
         Rfid_Init();
     #endif
 
@@ -215,8 +216,8 @@ void setup() {
     Ftp_Init();
     Mqtt_Init();
     Battery_Init();
-    Button_Init();
     #ifndef RFID_READER_TYPE_PN5180
+        Button_Init();
         Rfid_Init();
     #endif
     RotaryEncoder_Init();
