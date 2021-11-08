@@ -134,9 +134,9 @@ void setup() {
         Rfid_Init();
     #endif
 
-    // Init audio before system to avoid speaker noise
-    AudioPlayer_Init();
     System_Init();
+    // Init audio directly after system to avoid speaker noise
+    AudioPlayer_Init();
 
     memset(&gPlayProperties, 0, sizeof(gPlayProperties));
     gPlayProperties.playlistFinished = true;
