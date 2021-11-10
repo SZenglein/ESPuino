@@ -129,6 +129,8 @@ void printWakeUpReason() {
 void setup() {
     Log_Init();
     Queues_Init();
+
+    // make sure all wakeups can be enabled *before* initializing RFID, which can enter sleep immediately
     #ifdef RFID_READER_TYPE_PN5180
         Button_Init();
         Rfid_Init();
@@ -191,8 +193,12 @@ void setup() {
     Serial.println(F(" |  _|   \\__  \\  | |_) | | | | | | | | '_ \\   / _ \\"));
     Serial.println(F(" | |___   ___) | |  __/  | |_| | | | | | | | | (_) |"));
     Serial.println(F(" |_____| |____/  |_|      \\__,_| |_| |_| |_|  \\___/ "));
-    Serial.print(F(" Rfid-controlled musicplayer\n "));
+    Serial.print(F(" Rfid-controlled musicplayer\n\n"));
     Serial.printf("%s\n\n", softwareRevision);
+    Serial.print(F("ESP-IDF-version (major): "));
+    Serial.println(ESP_IDF_VERSION_MAJOR);
+    Serial.print(F("ESP-IDF-version (minor): "));
+    Serial.println(ESP_IDF_VERSION_MINOR);
 
     // print wake-up reason
     printWakeUpReason();
