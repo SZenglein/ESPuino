@@ -12,6 +12,7 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "Audio.h"
+#include "Power.h"
 
 constexpr const char prefsRfidNamespace[] PROGMEM = "rfidTags";     // Namespace used to save IDs of rfid-tags
 constexpr const char prefsSettingsNamespace[] PROGMEM = "settings"; // Namespace used for generic settings
@@ -35,12 +36,6 @@ void System_DeepSleepManager(void);
 
 void System_Init(void) {
     srand(esp_random());
-    pinMode(POWER, OUTPUT);
-    #ifdef INVERT_POWER
-        digitalWrite(POWER, LOW);
-    #else
-        digitalWrite(POWER, HIGH);
-    #endif
 
     gPrefsRfid.begin((char *) FPSTR(prefsRfidNamespace));
     gPrefsSettings.begin((char *) FPSTR(prefsSettingsNamespace));
@@ -226,11 +221,7 @@ void System_DeepSleepManager(void) {
 
         Serial.flush();
         // switch off power
-        #ifdef INVERT_POWER
-            digitalWrite(POWER, HIGH);
-        #else
-            digitalWrite(POWER, LOW);
-        #endif
+        Power_PeripheralOff();
         delay(200);
         Rfid_Exit();
         #ifdef PORT_EXPANDER_ENABLE
