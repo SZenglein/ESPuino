@@ -1,8 +1,14 @@
 #pragma once
 
-
 extern uint8_t batteryCheckInterval;
 
+
+#if defined(MEASURE_BATTERY_VOLTAGE) && (VOLTAGE_READ_PIN >= 0 && VOLTAGE_READ_PIN <= 39)
+extern float voltageIndicatorCritical;
+extern float warningLowVoltage;
+extern float voltageIndicatorLow;
+extern float voltageIndicatorHigh;
+#endif
 
 void Battery_Init(void);
 void Battery_Cyclic(void);

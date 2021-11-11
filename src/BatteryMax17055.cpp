@@ -1,15 +1,15 @@
 #include <Arduino.h>
-#include "settings.h"
-#include "Log.h"
 #include "Battery.h"
+#include "settings.h"
+
+#ifdef MEASURE_BATTERY_MAX17055
+#include "Log.h"
 #include "Mqtt.h"
 #include "Led.h"
 #include "System.h"
 #include <Wire.h>
 #include <Arduino-MAX17055_Driver.h>
 
-
-#ifdef MEASURE_BATTERY_MAX17055
 
 float batteryLow = s_batteryLow;
 float batteryCritical = s_batteryCritical;

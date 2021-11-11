@@ -6,10 +6,10 @@
 #include "Led.h"
 #include "System.h"
 
-
+#ifdef BATTERY_MEASURE_ENABLE
 uint8_t batteryCheckInterval = s_batteryCheckInterval;
 
-void Battery_Init() {
+void Battery_Init(void) {
     uint32_t vInterval = gPrefsSettings.getUInt("vCheckIntv", 17777);
     if (vInterval != 17777)
     {
@@ -55,3 +55,7 @@ void Battery_Cyclic(void)
         lastBatteryCheckTimestamp = millis();
     }
 }
+#else // BATTERY Measure disabled, add dummy methods 
+void Battery_Cyclic(void){}
+void Battery_Init(void) {}
+#endif

@@ -309,26 +309,26 @@ String templateProcessor(const String &templ) {
     } else if (templ == "MAX_VOLUME_HEADPHONE") {
         return String(gPrefsSettings.getUInt("maxVolumeHp", 0));
     } else if (templ == "WARNING_LOW_VOLTAGE") {
-        #ifdef MEASURE_BATTERY_VOLTAGE
+        #ifdef ENABLE_BATTERY_MEASUREMENTS
             return String(gPrefsSettings.getFloat("wLowVoltage", warningLowVoltage));
         #else
             return("3.4");
         #endif
     } else if (templ == "VOLTAGE_INDICATOR_LOW") {
-        #ifdef MEASURE_BATTERY_VOLTAGE
+        #ifdef ENABLE_BATTERY_MEASUREMENTS
             return String(gPrefsSettings.getFloat("vIndicatorLow", voltageIndicatorLow));
         #else
             return("3.0");
         #endif
     } else if (templ == "VOLTAGE_INDICATOR_HIGH") {
-        #ifdef MEASURE_BATTERY_VOLTAGE
+        #ifdef ENABLE_BATTERY_MEASUREMENTS
             return String(gPrefsSettings.getFloat("vIndicatorHigh", voltageIndicatorHigh));
         #else
             return("4.2");
         #endif
     } else if (templ == "VOLTAGE_CHECK_INTERVAL") {
-        #ifdef MEASURE_BATTERY_VOLTAGE
-            return String(gPrefsSettings.getUInt("vCheckIntv", voltageCheckInterval));
+        #ifdef ENABLE_BATTERY_MEASUREMENTS
+            return String(gPrefsSettings.getUInt("vCheckIntv", batteryCheckInterval));
         #else
             return("10");
         #endif

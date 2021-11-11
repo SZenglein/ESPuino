@@ -104,5 +104,16 @@ bool Battery_IsCritical(void) {
     return Battery_GetVoltage() < voltageIndicatorCritical;
 }
 
-
+#else
+#ifdef MEASURE_BATTERY_VOLTAGE
+// add some dummy impls to make CI happy
+void Battery_InitImpl(void){}
+void Battery_CyclicImpl(void){}
+float Battery_GetVoltage(void){return 4.2;}
+void Battery_PublishMQTT(void){}
+void Battery_LogStatus(void){}
+float Battery_EstimateSOC(void) {return 42.0;}
+bool Battery_IsLow(void) {return false;}
+bool Battery_IsCritical(void) {return false;}
+#endif
 #endif
