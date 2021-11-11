@@ -151,7 +151,9 @@
     const char mqttConnFailed[] PROGMEM = "Unable to establish mqtt-connection, trying again...";
     const char restoredHostnameFromNvs[] PROGMEM = "Restored hostname from NVS";
     const char currentVoltageMsg[] PROGMEM = "Current battery-voltage";
-    const char voltageTooLow[] PROGMEM = "Low battery-voltage";
+    const char currentChargeMsg[] PROGMEM = "Current battery charge";
+    const char batteryLowMsg[] PROGMEM = "Battery charge low";
+    const char batteryCriticalMsg[] PROGMEM = "Battery charge critical";
     const char sdBootFailedDeepsleep[] PROGMEM = "Failed to boot due to SD. Will go to deepsleep...";
     const char wifiEnabledAfterRestart[] PROGMEM = "WiFi will be enabled.";
     const char wifiDisabledAfterRestart[] PROGMEM = "WiFi will be disabled .";

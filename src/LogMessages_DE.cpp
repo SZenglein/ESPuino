@@ -151,7 +151,9 @@
     const char mqttConnFailed[] PROGMEM = "Verbindung fehlgeschlagen, versuche in Kürze erneut";
     const char restoredHostnameFromNvs[] PROGMEM = "Hostname aus NVS geladen";
     const char currentVoltageMsg[] PROGMEM = "Aktuelle Batteriespannung";
-    const char voltageTooLow[] PROGMEM = "Batteriespannung niedrig";
+    const char currentChargeMsg[] PROGMEM = "Aktuelle Batterieladung";
+    const char batteryLowMsg[] PROGMEM = "Batterieladung niedrig";
+    const char batteryCriticalMsg[] PROGMEM = "Batterieladung kritisch";
     const char sdBootFailedDeepsleep[] PROGMEM = "Bootgang wegen SD fehlgeschlagen. Gehe in Deepsleep...";
     const char wifiEnabledAfterRestart[] PROGMEM = "WLAN wird aktiviert.";
     const char wifiDisabledAfterRestart[] PROGMEM = "WLAN wird deaktiviert.";

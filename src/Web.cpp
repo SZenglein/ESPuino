@@ -309,13 +309,29 @@ String templateProcessor(const String &templ) {
     } else if (templ == "MAX_VOLUME_HEADPHONE") {
         return String(gPrefsSettings.getUInt("maxVolumeHp", 0));
     } else if (templ == "WARNING_LOW_VOLTAGE") {
-        return String(gPrefsSettings.getFloat("wLowVoltage", warningLowVoltage));
+        #ifdef MEASURE_BATTERY_VOLTAGE
+            return String(gPrefsSettings.getFloat("wLowVoltage", warningLowVoltage));
+        #else
+            return("3.4");
+        #endif
     } else if (templ == "VOLTAGE_INDICATOR_LOW") {
-        return String(gPrefsSettings.getFloat("vIndicatorLow", voltageIndicatorLow));
+        #ifdef MEASURE_BATTERY_VOLTAGE
+            return String(gPrefsSettings.getFloat("vIndicatorLow", voltageIndicatorLow));
+        #else
+            return("3.0");
+        #endif
     } else if (templ == "VOLTAGE_INDICATOR_HIGH") {
-        return String(gPrefsSettings.getFloat("vIndicatorHigh", voltageIndicatorHigh));
+        #ifdef MEASURE_BATTERY_VOLTAGE
+            return String(gPrefsSettings.getFloat("vIndicatorHigh", voltageIndicatorHigh));
+        #else
+            return("4.2");
+        #endif
     } else if (templ == "VOLTAGE_CHECK_INTERVAL") {
-        return String(gPrefsSettings.getUInt("vCheckIntv", voltageCheckInterval));
+        #ifdef MEASURE_BATTERY_VOLTAGE
+            return String(gPrefsSettings.getUInt("vCheckIntv", voltageCheckInterval));
+        #else
+            return("10");
+        #endif
     } else if (templ == "MQTT_SERVER") {
         return gPrefsSettings.getString("mqttServer", "-1");
     } else if (templ == "SHOW_MQTT_TAB") { // Only show MQTT-tab if MQTT-support was compiled
