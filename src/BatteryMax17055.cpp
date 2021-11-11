@@ -104,6 +104,12 @@ void Battery_LogStatus(void){
     // TODO i18n 
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mA", "Instantaneous Current", instCurr);
     Log_Println(Log_Buffer, LOGLEVEL_INFO);
+
+    float avgCurr = sensor.getAverageCurrent();
+    // TODO i18n 
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mA", "Average Current", avgCurr);
+    Log_Println(Log_Buffer, LOGLEVEL_INFO);
+
 }
 
 float Battery_EstimateSOC(void) {
