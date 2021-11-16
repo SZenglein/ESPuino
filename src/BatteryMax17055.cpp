@@ -25,15 +25,19 @@ void Battery_InitImpl()
     if (POR){
         // TODO i18n 
         Log_Println("Battery detected power loss - loading fuel gauge parameters.", LOGLEVEL_NOTICE);
-        uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0xFF);
-        uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0xFF);
-        uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0xFF);
-        uint16_t cycles     = gPrefsSettings.getUShort("MAX17055_cycles", 0xFF);
-        uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0xFF);
-
-        if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0xFF) {
+        uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0xFFFF);
+        uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0xFFFF);
+        uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0xFFFF);
+        uint16_t cycles     = gPrefsSettings.getUShort("MAX17055_cycles", 0xFFFF);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Load Cycles", cycles/100.0);
+        Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
+        uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0xFFFF);
+        
+        if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0xFFFF) {
             Log_Println("Successfully loaded fuel gauge parameters.", LOGLEVEL_NOTICE);
             sensor.restoreLearnedParameters(delay, rComp0, tempCo, fullCapRep, cycles, fullCapNom);
+        } else {
+            Log_Println("Failed loading fuel gauge parameters.", LOGLEVEL_NOTICE);
         }
     } else {
         Log_Println("Battery continuing normal operation", LOGLEVEL_DEBUG);
@@ -47,7 +51,10 @@ void Battery_InitImpl()
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)"Empty Voltage", val);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
     uint16_t modelCfg = sensor.getModelCfg();
-    snprintf(Log_Buffer, Log_BufferLength, "%s: %x", (char *)"ModelCfg Value", modelCfg);
+    snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"ModelCfg Value", modelCfg);
+    Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
+    uint16_t cycles = sensor.getCycles();
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Cycles", cycles/100.0);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
     
     float vBatteryLow = gPrefsSettings.getFloat("batteryLow", 999.99);
