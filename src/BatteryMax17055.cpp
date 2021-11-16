@@ -47,7 +47,7 @@ void Battery_InitImpl()
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)"Empty Voltage", val);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
     uint16_t modelCfg = sensor.getModelCfg();
-    snprintf(Log_Buffer, Log_BufferLength, "%s: %h ", (char *)"ModelCfg Value", modelCfg);
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %x", (char *)"ModelCfg Value", modelCfg);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
     
     float vBatteryLow = gPrefsSettings.getFloat("batteryLow", 999.99);
