@@ -25,15 +25,15 @@ void Battery_InitImpl()
     if (POR){
         // TODO i18n 
         Log_Println("Battery detected power loss - loading fuel gauge parameters.", LOGLEVEL_NOTICE);
-        uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0xFFFF);
-        uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0xFFFF);
-        uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0xFFFF);
-        uint16_t cycles     = gPrefsSettings.getUShort("MAX17055_cycles", 0xFFFF);
+        uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0x0000);
+        uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0x0000);
+        uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0x0000);
+        uint16_t cycles     = gPrefsSettings.getUShort("MAX17055_cycles", 0x0000);
         snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Load Cycles", cycles/100.0);
         Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
-        uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0xFFFF);
+        uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0x0000);
         
-        if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0xFFFF) {
+        if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0x0000) {
             Log_Println("Successfully loaded fuel gauge parameters.", LOGLEVEL_NOTICE);
             sensor.restoreLearnedParameters(delay, rComp0, tempCo, fullCapRep, cycles, fullCapNom);
         } else {
@@ -79,8 +79,8 @@ void Battery_InitImpl()
 }
 
 void Battery_CyclicImpl(){
-    // TODO check with doc
     if (sensor.getCycles() & 0x020) {
+        Log_Println("Battery Cycle passed 64%, store MAX17055 learned parameters", LOGLEVEL_DEBUG);
         uint16_t rComp0;
         uint16_t tempCo;
         uint16_t fullCapRep;
@@ -90,7 +90,7 @@ void Battery_CyclicImpl(){
         gPrefsSettings.putUShort("rComp0", rComp0);
         gPrefsSettings.putUShort("tempCo", tempCo);
         gPrefsSettings.putUShort("fullCapRep", fullCapRep);
-        gPrefsSettings.putUShort("cycles",cycles);
+        gPrefsSettings.putUShort("MAX17055_cycles", cycles);
         gPrefsSettings.putUShort("fullCapNom", fullCapNom);
     }
 }
