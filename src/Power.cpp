@@ -6,6 +6,7 @@
 
 void Power_Init(void){
     pinMode(POWER, OUTPUT);
+    digitalWrite(POWER, POWER_OFF);
 }
 
 void Power_PeripheralOn(void){

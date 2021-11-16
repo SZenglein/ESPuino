@@ -155,7 +155,7 @@ extern const char wifiEnabledAfterRestart[];
 extern const char wifiDisabledAfterRestart[];
 extern const char voltageIndicatorLowFromNVS[];
 extern const char voltageIndicatorHighFromNVS[];
-extern const char voltageCheckIntervalFromNVS[];
+extern const char batteryCheckIntervalFromNVS[];
 extern const char warningLowVoltageFromNVS[];
 extern const char unableToRestoreLastRfidFromNVS[];
 extern const char restoredLastRfidFromNVS[];

@@ -145,15 +145,6 @@ void setup() {
         Wire.begin();
     #endif
     Battery_Init();
-    #ifdef BATTERY_MEASURE_ENABLE
-        if (Battery_IsCritical()) {
-            // TODO: i18n
-            Log_Println("Battery critically low, enter sleep immediately!", LOGLEVEL_NOTICE);
-            // turn off power just to be sure
-            Power_PeripheralOff();
-            esp_deep_sleep_start();
-        }
-    #endif
 
     // Init audio before power on to avoid speaker noise
     AudioPlayer_Init();

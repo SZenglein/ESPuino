@@ -153,7 +153,7 @@
     const char currentVoltageMsg[] PROGMEM = "Current battery-voltage";
     const char currentChargeMsg[] PROGMEM = "Current battery charge";
     const char batteryLowMsg[] PROGMEM = "Battery charge low";
-    const char batteryCriticalMsg[] PROGMEM = "Battery charge critical";
+    const char batteryCriticalMsg[] PROGMEM = "Battery charge critical. Will go to deepsleep...";
     const char sdBootFailedDeepsleep[] PROGMEM = "Failed to boot due to SD. Will go to deepsleep...";
     const char wifiEnabledAfterRestart[] PROGMEM = "WiFi will be enabled.";
     const char wifiDisabledAfterRestart[] PROGMEM = "WiFi will be disabled .";

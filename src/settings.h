@@ -183,15 +183,15 @@
 
 
     #ifdef BATTERY_MEASURE_ENABLE
-        // #define MEASURE_BATTERY_VOLTAGE                // Enables battery-measurement via GPIO (ADC) and voltage-divider
+        //#define MEASURE_BATTERY_VOLTAGE                // Enables battery-measurement via GPIO (ADC) and voltage-divider
         #define MEASURE_BATTERY_MAX17055               // Measure battery using external fuel gauge IC
         constexpr uint8_t s_batteryCheckInterval = 10; // How of battery-voltage is measured (in minutes) (can be changed via GUI!)
     #endif
 
     #ifdef MEASURE_BATTERY_VOLTAGE
         // (optional) Default-voltages for battery-monitoring via Neopixel
-        constexpr float s_warningLowVoltage = 3.4;                      // If battery-voltage is >= this value, a cyclic warning will be indicated by Neopixel (can be changed via GUI!)
-        constexpr float s_voltageIndicatorCritical = 3.05;
+        constexpr float s_warningLowVoltage = 3.4;                      // If battery-voltage is <= this value, a cyclic warning will be indicated by Neopixel (can be changed via GUI!)
+        constexpr float s_voltageIndicatorCritical = 3.05;              // If battery-voltage is <= this value, shutdown and refuse to boot. Set to 0V to disable.
         constexpr float s_voltageIndicatorLow = 3.0;                    // Lower range for Neopixel-voltage-indication (0 leds) (can be changed via GUI!)
         constexpr float s_voltageIndicatorHigh = 4.2;                   // Upper range for Neopixel-voltage-indication (all leds) (can be changed via GUI!)
     #endif
