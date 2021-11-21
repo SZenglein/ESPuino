@@ -27,7 +27,7 @@ void Battery_InitImpl()
 
     // if power was lost, restore model params
     if (POR){
-        // TODO i18n 
+        // TODO i18n necessary?
         Log_Println("Battery detected power loss - loading fuel gauge parameters.", LOGLEVEL_NOTICE);
         uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0x0000);
         uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0x0000);
@@ -43,7 +43,7 @@ void Battery_InitImpl()
         Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
         snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"fullCapNom", fullCapNom);
         Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
-        
+
         if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0x0000) {
             Log_Println("Successfully loaded fuel gauge parameters.", LOGLEVEL_NOTICE);
             sensor.restoreLearnedParameters(delay, rComp0, tempCo, fullCapRep, cycles, fullCapNom);
@@ -67,21 +67,23 @@ void Battery_InitImpl()
     uint16_t cycles = sensor.getCycles();
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Cycles", cycles/100.0);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
-    
+
     float vBatteryLow = gPrefsSettings.getFloat("batteryLow", 999.99);
     if (vBatteryLow <= 999) {
         batteryLow = vBatteryLow;
-        // TODO: Log
+        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)FPSTR(batteryLowFromNVS), batteryLow);
+        Log_Println(Log_Buffer, LOGLEVEL_INFO);
     }
     else
     {
         gPrefsSettings.putFloat("batteryLow", batteryLow);
-    }    
+    }
 
     float vBatteryCritical = gPrefsSettings.getFloat("batteryCritical", 999.99);
     if (vBatteryCritical <= 999) {
         batteryCritical = vBatteryCritical;
-        // TODO: Log
+        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)FPSTR(batteryCriticalFromNVS), batteryCritical);
+        Log_Println(Log_Buffer, LOGLEVEL_INFO);
     }
     else
     {
@@ -139,36 +141,25 @@ void Battery_LogStatus(void){
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f %%", (char *)FPSTR(currentChargeMsg), soc);
     Log_Println(Log_Buffer, LOGLEVEL_INFO);
 
-    float instCurr = sensor.getInstantaneousCurrent();
-    // TODO i18n 
-    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mA", "Instantaneous Current", instCurr);
-    Log_Println(Log_Buffer, LOGLEVEL_INFO);
-
     float avgCurr = sensor.getAverageCurrent();
-    // TODO i18n 
-    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mA", "Average Current", avgCurr);
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mA", (char *)FPSTR(batteryCurrentMsg)), avgCurr);
     Log_Println(Log_Buffer, LOGLEVEL_INFO);
-
 
     float temperature = sensor.getTemperature();
-    // TODO i18n
-    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f °C", "Temperature", temperature);
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f °C", (char *)FPSTR(batteryTempMsg), temperature);
     Log_Println(Log_Buffer, LOGLEVEL_INFO);
 
     // pretty useless because of low resolution
     // float maxCurrent = sensor.getMaxCurrent();
-    // // TODO i18n
     // snprintf(Log_Buffer, Log_BufferLength, "%s: %.4f mA", "Max current to battery since last check", maxCurrent);
     // Log_Println(Log_Buffer, LOGLEVEL_INFO);
     // float minCurrent = sensor.getMinCurrent();
-    // // TODO i18n
     // snprintf(Log_Buffer, Log_BufferLength, "%s: %.4f mA", "Min current to battery since last check", minCurrent);
     // Log_Println(Log_Buffer, LOGLEVEL_INFO);
     // sensor.resetMaxMinCurrent();
 
     float cycles = sensor.getCycles() / 100.0;
-    // TODO i18n 
-    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", "Battery Cycles", cycles);
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)FPSTR(batteryCyclesMsg), cycles);
     Log_Println(Log_Buffer, LOGLEVEL_INFO);
 }
 

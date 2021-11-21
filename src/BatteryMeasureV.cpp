@@ -68,7 +68,6 @@ void Battery_InitImpl()
 }
 
 void Battery_CyclicImpl(){
-    
 }
 
 // The average of several analog reads will be taken to reduce the noise (Note: One analog read takes ~10µs)

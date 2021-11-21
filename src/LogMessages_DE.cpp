@@ -152,6 +152,9 @@
     const char restoredHostnameFromNvs[] PROGMEM = "Hostname aus NVS geladen";
     const char currentVoltageMsg[] PROGMEM = "Aktuelle Batteriespannung";
     const char currentChargeMsg[] PROGMEM = "Aktuelle Batterieladung";
+    const char batteryCurrentMsg[] PROGMEM = "Stromverbrauch (Batterie)";
+    const char batteryTempMsg[] PROGMEM = "Temperatur der Batterie";
+    const char batteryCyclesMsg[] PROGMEM = "Gesehene Batteriezyklen";
     const char batteryLowMsg[] PROGMEM = "Batterieladung niedrig";
     const char batteryCriticalMsg[] PROGMEM = "Batterieladung kritisch. Gehe in Deepsleep...";
     const char sdBootFailedDeepsleep[] PROGMEM = "Bootgang wegen SD fehlgeschlagen. Gehe in Deepsleep...";
@@ -162,6 +165,8 @@
     const char batteryCheckIntervalFromNVS[] PROGMEM = "Zyklus für Batteriemessung fuer Neopixel-Anzeige aus NVS geladen";
     const char warningLowVoltageFromNVS[] PROGMEM = "Spannungslevel (Batterie) fuer Niedrig-Warnung via Neopixel aus NVS geladen";
     const char warningCriticalVoltageFromNVS[] PROGMEM = "Spannungslevel (Batterie) fuer Kritisch-Warnung via Neopixel aus NVS geladen";
+    const char batteryLowFromNVS[] PROGMEM = "Batterieladestand fuer Niedrig-Warnung via Neopixel aus NVS geladen";
+    const char batteryCriticalFromNVS[] PROGMEM = "Batterieladestand fuer Kritisch-Warnung via Neopixel aus NVS geladen";
     const char unableToRestoreLastRfidFromNVS[] PROGMEM = "Letzte RFID konnte nicht aus NVS geladen werden";
     const char restoredLastRfidFromNVS[] PROGMEM = "Letzte RFID wurde aus NVS geladen";
     const char failedOpenFileForWrite[] PROGMEM = "Öffnen der Datei für den Schreibvorgang fehlgeschlagen";
@@ -188,6 +193,7 @@
     const char lowPowerCardSuccess[] PROGMEM = "Kartenerkennung via 'low power' erfolgreich durchgeführt";
     const char rememberLastVolume[] PROGMEM = "Lautstärke vor dem letzten Shutdown wird wiederhergestellt. Dies überschreibt die Einstellung der initialen Lautstärke aus der GUI.";
     const char unableToStartFtpServer[] PROGMEM = "Der FTP-Server konnte nicht gestartet werden. Entweder weil er ist bereits gestartet oder kein WLAN verfügbar ist.";
+    const char unableToTellIpAddress[] PROGMEM = "IP-Adresse kann nicht angesagt werden, da keine WLAN-Verbindung besteht.";
     const char newPlayModeStereo[] PROGMEM = "Neuer Modus: stereo";
     const char newPlayModeMono[] PROGMEM = "Neuer Modus: mono";
     const char portExpanderFound[] PROGMEM = "Port-expander gefunden";

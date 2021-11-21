@@ -125,7 +125,7 @@
     #define BUTTON_MULTI_03   CMD_NOTHING
     #define BUTTON_MULTI_04   CMD_NOTHING
     #define BUTTON_MULTI_05   CMD_NOTHING
-    #define BUTTON_MULTI_12   CMD_NOTHING
+    #define BUTTON_MULTI_12   CMD_TELL_IP_ADDRESS
     #define BUTTON_MULTI_13   CMD_NOTHING
     #define BUTTON_MULTI_14   CMD_NOTHING
     #define BUTTON_MULTI_15   CMD_NOTHING
@@ -193,7 +193,7 @@
     #ifdef MEASURE_BATTERY_VOLTAGE
         // (optional) Default-voltages for battery-monitoring via Neopixel
         constexpr float s_warningLowVoltage = 3.4;                      // If battery-voltage is <= this value, a cyclic warning will be indicated by Neopixel (can be changed via GUI!)
-        constexpr float s_warningCriticalVoltage = 3.05;              // If battery-voltage is <= this value, shutdown and refuse to boot. Set to 0V to disable.
+        constexpr float s_warningCriticalVoltage = 3.1;                 // If battery-voltage is <= this value, shutdown and refuse to boot. Set to 0V to disable.
         constexpr float s_voltageIndicatorLow = 3.0;                    // Lower range for Neopixel-voltage-indication (0 leds) (can be changed via GUI!)
         constexpr float s_voltageIndicatorHigh = 4.2;                   // Upper range for Neopixel-voltage-indication (all leds) (can be changed via GUI!)
     #endif
@@ -206,7 +206,7 @@
         constexpr uint16_t s_emptyVoltage = 300;        // empty voltage in 10mV
         constexpr uint16_t s_recoveryVoltage = 360;     // recovery voltage in 10mV
         constexpr uint8_t  s_batteryChemistry = 0x60;   // 0 = Li-Ion, 0x20 = NCR, 0x60 = LiFePO4
-        constexpr float s_resistSensor = 0.01;          // current sense resistor
+        constexpr float s_resistSensor = 0.01;          // current sense resistor, currently non-default values might lead to problems
         constexpr bool s_vCharge = 0;                   // true if charge voltage is greater than 4.275V
     #endif
 

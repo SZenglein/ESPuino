@@ -182,6 +182,8 @@ void webserverStart(void) {
                 #ifdef BATTERY_MEASURE_ENABLE
                     snprintf(Log_Buffer, Log_BufferLength, "\n%s: %.2f V", (char *) FPSTR(currentVoltageMsg), Battery_GetVoltage());
                     info += (String) Log_Buffer;
+                    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f %%", (char *)FPSTR(currentChargeMsg), Battery_EstimateSOC());
+                    info += (String) Log_Buffer;
                 #endif
                 info += "\n" + (String) softwareRevision;
                 request->send_P(200, "text/plain", info.c_str());

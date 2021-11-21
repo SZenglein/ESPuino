@@ -26,6 +26,7 @@ void Battery_Init(void) {
 
     Battery_InitImpl();
 
+    #ifdef SHUTDOWN_ON_BAT_CRITICAL
     if (Battery_IsCritical()) {
         Battery_LogStatus();
         // TODO: i18n
@@ -41,6 +42,8 @@ void Battery_Init(void) {
         delay(1000);
         esp_deep_sleep_start();
     }
+    #endif
+
 }
 
 // Measures battery as per interval or after bootup (after allowing a few seconds to settle down)
