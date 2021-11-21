@@ -160,7 +160,8 @@
     const char voltageIndicatorLowFromNVS[] PROGMEM = "Unterer Spannungslevel (Batterie) fuer Neopixel-Anzeige aus NVS geladen";
     const char voltageIndicatorHighFromNVS[] PROGMEM = "Oberer Spannungslevel (Batterie) fuer Neopixel-Anzeige aus NVS geladen";
     const char batteryCheckIntervalFromNVS[] PROGMEM = "Zyklus für Batteriemessung fuer Neopixel-Anzeige aus NVS geladen";
-    const char warningLowVoltageFromNVS[] PROGMEM = "Spannungslevel (Batterie) fuer Warnung via Neopixel aus NVS geladen";
+    const char warningLowVoltageFromNVS[] PROGMEM = "Spannungslevel (Batterie) fuer Niedrig-Warnung via Neopixel aus NVS geladen";
+    const char warningCriticalVoltageFromNVS[] PROGMEM = "Spannungslevel (Batterie) fuer Kritisch-Warnung via Neopixel aus NVS geladen";
     const char unableToRestoreLastRfidFromNVS[] PROGMEM = "Letzte RFID konnte nicht aus NVS geladen werden";
     const char restoredLastRfidFromNVS[] PROGMEM = "Letzte RFID wurde aus NVS geladen";
     const char failedOpenFileForWrite[] PROGMEM = "Öffnen der Datei für den Schreibvorgang fehlgeschlagen";

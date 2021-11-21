@@ -11,7 +11,7 @@
 constexpr uint16_t maxAnalogValue = 4095u; // Highest value given by analogRead(); don't change!
 
 float warningLowVoltage = s_warningLowVoltage;
-float voltageIndicatorCritical = s_voltageIndicatorCritical;
+float warningCriticalVoltage = s_warningCriticalVoltage;
 float voltageIndicatorLow = s_voltageIndicatorLow;
 float voltageIndicatorHigh = s_voltageIndicatorHigh;
 
@@ -46,6 +46,18 @@ void Battery_InitImpl()
     if (vLowWarning <= 999)
     {
         warningLowVoltage = vLowWarning;
+        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)FPSTR(warningLowVoltageFromNVS), vLowWarning);
+        Log_Println(Log_Buffer, LOGLEVEL_INFO);
+    }
+    else
+    {
+        gPrefsSettings.putFloat("wLowVoltage", warningLowVoltage);
+    }
+
+    float vCriticalWarning = gPrefsSettings.getFloat("wCriticalVoltage", 999.99);
+    if (vLowWarning <= 999)
+    {
+        warningCriticalVoltage = vCriticalWarning;
         snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)FPSTR(warningLowVoltageFromNVS), vLowWarning);
         Log_Println(Log_Buffer, LOGLEVEL_INFO);
     }
@@ -97,11 +109,11 @@ float Battery_EstimateSOC(void) {
 }
 
 bool Battery_IsLow(void) {
-    return Battery_GetVoltage() < voltageIndicatorLow;
+    return Battery_GetVoltage() < warningLowVoltage;
 }
 
 bool Battery_IsCritical(void) {
-    return Battery_GetVoltage() < voltageIndicatorCritical;
+    return Battery_GetVoltage() < warningCriticalVoltage;
 }
 
 #else

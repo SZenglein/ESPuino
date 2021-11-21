@@ -23,13 +23,6 @@
 #include "Wlan.h"
 #include "revision.h"
 
-// Only enable measurements if valid GPIO is used
-#ifdef MEASURE_BATTERY_VOLTAGE
-    #if (VOLTAGE_READ_PIN >= 0 && VOLTAGE_READ_PIN <= 39)
-        #define ENABLE_BATTERY_MEASUREMENTS
-    #endif
-#endif
-
 #if (LANGUAGE == DE)
     #include "HTMLaccesspoint_DE.h"
     #include "HTMLmanagement_DE.h"
@@ -186,7 +179,7 @@ void webserverStart(void) {
                     info += "\nESP-IDF minor: ";
                     info += ESP_IDF_VERSION_MINOR;
                 #endif
-                #ifdef ENABLE_BATTERY_MEASUREMENTS
+                #ifdef BATTERY_MEASURE_ENABLE
                     snprintf(Log_Buffer, Log_BufferLength, "\n%s: %.2f V", (char *) FPSTR(currentVoltageMsg), Battery_GetVoltage());
                     info += (String) Log_Buffer;
                 #endif
@@ -309,25 +302,25 @@ String templateProcessor(const String &templ) {
     } else if (templ == "MAX_VOLUME_HEADPHONE") {
         return String(gPrefsSettings.getUInt("maxVolumeHp", 0));
     } else if (templ == "WARNING_LOW_VOLTAGE") {
-        #ifdef ENABLE_BATTERY_MEASUREMENTS
+        #ifdef MEASURE_BATTERY_VOLTAGE
             return String(gPrefsSettings.getFloat("wLowVoltage", warningLowVoltage));
         #else
             return("3.4");
         #endif
     } else if (templ == "VOLTAGE_INDICATOR_LOW") {
-        #ifdef ENABLE_BATTERY_MEASUREMENTS
+        #ifdef MEASURE_BATTERY_VOLTAGE
             return String(gPrefsSettings.getFloat("vIndicatorLow", voltageIndicatorLow));
         #else
             return("3.0");
         #endif
     } else if (templ == "VOLTAGE_INDICATOR_HIGH") {
-        #ifdef ENABLE_BATTERY_MEASUREMENTS
+        #ifdef MEASURE_BATTERY_VOLTAGE
             return String(gPrefsSettings.getFloat("vIndicatorHigh", voltageIndicatorHigh));
         #else
             return("4.2");
         #endif
     } else if (templ == "VOLTAGE_CHECK_INTERVAL") {
-        #ifdef ENABLE_BATTERY_MEASUREMENTS
+        #ifdef MEASURE_BATTERY_VOLTAGE
             return String(gPrefsSettings.getUInt("vCheckIntv", batteryCheckInterval));
         #else
             return("10");

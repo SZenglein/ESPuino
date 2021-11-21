@@ -61,11 +61,13 @@ void Battery_Cyclic(void)
             Led_Indicate(LedIndicatorType::VoltageWarning);
         }
 
+        #ifdef SHUTDOWN_ON_BAT_CRITICAL
         if (Battery_IsCritical()) 
         {   
             Log_Println((char *)FPSTR(batteryCriticalMsg), LOGLEVEL_ERROR);
             System_RequestSleep();
         }
+        #endif
 
         lastBatteryCheckTimestamp = millis();
     }

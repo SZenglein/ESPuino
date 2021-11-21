@@ -157,6 +157,7 @@ extern const char voltageIndicatorLowFromNVS[];
 extern const char voltageIndicatorHighFromNVS[];
 extern const char batteryCheckIntervalFromNVS[];
 extern const char warningLowVoltageFromNVS[];
+extern const char warningCriticalVoltageFromNVS[];
 extern const char unableToRestoreLastRfidFromNVS[];
 extern const char restoredLastRfidFromNVS[];
 extern const char failedOpenFileForWrite[];

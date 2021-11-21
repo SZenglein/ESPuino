@@ -160,7 +160,8 @@
     const char voltageIndicatorLowFromNVS[] PROGMEM = "Restored lower voltage-level for Neopixel-display from NVS";
     const char voltageIndicatorHighFromNVS[] PROGMEM = "Restored upper voltage-level for Neopixel-display from NVS";
     const char voltageCheckIntervalFromNVS[] PROGMEM = "Restored interval of battery-measurement or Neopixel-display from NVS";
-    const char warningLowVoltageFromNVS[] PROGMEM = "Restored battery-voltage-level for warning via Neopixel from NVS";
+    const char warningLowVoltageFromNVS[] PROGMEM = "Restored low battery-voltage-level for warning via Neopixel from NVS";
+    const char warningCriticalVoltageFromNVS[] PROGMEM = "Restored critical battery-voltage-level for warning via Neopixel from NVS";
     const char unableToRestoreLastRfidFromNVS[] PROGMEM = "Unable to restore last RFID from NVS";
     const char restoredLastRfidFromNVS[] PROGMEM = "Restored last RFID from NVS";
     const char failedOpenFileForWrite[] PROGMEM = "Failed to open file for writing";
