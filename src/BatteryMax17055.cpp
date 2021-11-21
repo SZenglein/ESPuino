@@ -13,6 +13,7 @@
 
 float batteryLow = s_batteryLow;
 float batteryCritical = s_batteryCritical;
+uint16_t cycles = 0;
 
 MAX17055 sensor;
 
@@ -20,6 +21,9 @@ void Battery_InitImpl()
 {
     bool POR = sensor.getPOR();
     sensor.init(delay, s_batteryCapacity, s_emptyVoltage, s_recoveryVoltage, s_batteryChemistry, s_vCharge, s_resistSensor);
+    cycles = gPrefsSettings.getUShort("MAX17055_cycles", 0x0000);
+    snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Cycles saved in NVS:", cycles/100.0);
+    Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
 
     // if power was lost, restore model params
     if (POR){
@@ -28,10 +32,17 @@ void Battery_InitImpl()
         uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0x0000);
         uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0x0000);
         uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0x0000);
-        uint16_t cycles     = gPrefsSettings.getUShort("MAX17055_cycles", 0x0000);
-        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Load Cycles", cycles/100.0);
-        Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
         uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0x0000);
+
+        Log_Println("Loaded MAX17055 attery model parameters from NVS:", LOGLEVEL_DEBUG);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"rComp0", rComp0);
+        Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"tempCo", tempCo);
+        Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"fullCapRep", fullCapRep);
+        Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"fullCapNom", fullCapNom);
+        Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
         
         if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0x0000) {
             Log_Println("Successfully loaded fuel gauge parameters.", LOGLEVEL_NOTICE);
@@ -43,7 +54,7 @@ void Battery_InitImpl()
         Log_Println("Battery continuing normal operation", LOGLEVEL_DEBUG);
     }
 
-    Log_Println("Battery init done. Battery configured with the following settings:", LOGLEVEL_DEBUG);
+    Log_Println("MAX17055 init done. Battery configured with the following settings:", LOGLEVEL_DEBUG);
     float val = sensor.getCapacity();
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mAh", (char *)"Design Capacity", val);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
@@ -79,7 +90,8 @@ void Battery_InitImpl()
 }
 
 void Battery_CyclicImpl(){
-    if (sensor.getCycles() & 0x020) {
+    // It is recommended to save the learned capacity parameters every time bit 6 of the Cycles register toggles 
+    if (cycles + 0x0040 < sensor.getCycles()) {
         Log_Println("Battery Cycle passed 64%, store MAX17055 learned parameters", LOGLEVEL_DEBUG);
         uint16_t rComp0;
         uint16_t tempCo;
@@ -92,6 +104,7 @@ void Battery_CyclicImpl(){
         gPrefsSettings.putUShort("fullCapRep", fullCapRep);
         gPrefsSettings.putUShort("MAX17055_cycles", cycles);
         gPrefsSettings.putUShort("fullCapNom", fullCapNom);
+        cycles = sensor.getCycles();
     }
 }
 
