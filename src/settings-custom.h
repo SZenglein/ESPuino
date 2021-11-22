@@ -71,8 +71,8 @@
 
     // I2C-configuration (necessary for RC522 [only via i2c - not spi!] or port-expander)
     #ifdef I2C_2_ENABLE
-        #define ext_IIC_CLK                 4           // i2c-SCL (clock)
-        #define ext_IIC_DATA                2           // i2c-SDA (data)
+        #define ext_IIC_CLK                22           // i2c-SCL (clock)
+        #define ext_IIC_DATA               21           // i2c-SDA (data)
     #endif
 
     // Wake-up button => this also is the interrupt-pin if port-expander is enabled!
