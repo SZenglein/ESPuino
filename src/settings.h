@@ -38,7 +38,8 @@
     #define HEADPHONE_ADJUST_ENABLE       // Used to adjust (lower) volume for optional headphone-pcb (refer maxVolumeSpeaker / maxVolumeHeadphone) and to enable stereo (if PLAY_MONO_SPEAKER is set)
     #define PLAY_MONO_SPEAKER               // If only one speaker is used enabling mono should make sense. Please note: headphones is always stereo (if HEADPHONE_ADJUST_ENABLE is active)
     #define SHUTDOWN_IF_SD_BOOT_FAILS       // Will put ESP to deepsleep if boot fails due to SD. Really recommend this if there's in battery-mode no other way to restart ESP! Interval adjustable via deepsleepTimeAfterBootFails.
-    #define BATTERY_MEASURE_ENABLE          // Enables battery-measurement and visualization
+    //#define MEASURE_BATTERY_VOLTAGE         // Enables battery-measurement via GPIO (ADC) and voltage-divider
+    #define MEASURE_BATTERY_MAX17055      // Enables battery-measurement via external fuel gauge (MAX17055)
     //#define PLAY_LAST_RFID_AFTER_REBOOT   // When restarting ESPuino, the last RFID that was active before, is recalled and played
     //#define USE_LAST_VOLUME_AFTER_REBOOT  // Remembers the volume used at last shutdown after reboot
     #define USEROTARY_ENABLE                // If rotary-encoder is used (don't forget to review WAKEUP_BUTTON if you disable this feature!)
@@ -182,10 +183,10 @@
     #endif
 
 
-    #ifdef BATTERY_MEASURE_ENABLE
-        //#define MEASURE_BATTERY_VOLTAGE                // Enables battery-measurement via GPIO (ADC) and voltage-divider
-        #define MEASURE_BATTERY_MAX17055               // Measure battery using external fuel gauge IC
-        constexpr uint8_t s_batteryCheckInterval = 10; // How of battery-voltage is measured (in minutes) (can be changed via GUI!)
+
+    #if defined(MEASURE_BATTERY_VOLTAGE) || defined(MEASURE_BATTERY_MAX17055)
+        #define BATTERY_MEASURE_ENABLE
+        constexpr uint8_t s_batteryCheckInterval = 10; // How often battery is measured (in minutes) (can be changed via GUI!)
 
         #define SHUTDOWN_ON_BAT_CRITICAL               // Whether to turn off on critical battery level
     #endif
@@ -193,7 +194,7 @@
     #ifdef MEASURE_BATTERY_VOLTAGE
         // (optional) Default-voltages for battery-monitoring via Neopixel
         constexpr float s_warningLowVoltage = 3.4;                      // If battery-voltage is <= this value, a cyclic warning will be indicated by Neopixel (can be changed via GUI!)
-        constexpr float s_warningCriticalVoltage = 3.1;                 // If battery-voltage is <= this value, shutdown and refuse to boot. Set to 0V to disable.
+        constexpr float s_warningCriticalVoltage = 3.1;                 // If battery-voltage is <= this value, assume battery near-empty. Set to 0V to disable.
         constexpr float s_voltageIndicatorLow = 3.0;                    // Lower range for Neopixel-voltage-indication (0 leds) (can be changed via GUI!)
         constexpr float s_voltageIndicatorHigh = 4.2;                   // Upper range for Neopixel-voltage-indication (all leds) (can be changed via GUI!)
     #endif
@@ -208,6 +209,11 @@
         constexpr uint8_t  s_batteryChemistry = 0x60;   // 0 = Li-Ion, 0x20 = NCR, 0x60 = LiFePO4
         constexpr float s_resistSensor = 0.01;          // current sense resistor, currently non-default values might lead to problems
         constexpr bool s_vCharge = 0;                   // true if charge voltage is greater than 4.275V
+    #endif
+
+    // enable I2C if necessary
+    #if defined(RFID_READER_TYPE_MFRC522_I2C) || defined(PORT_EXPANDER_ENABLE) || defined(MEASURE_BATTERY_MAX17055)
+        #define I2C_2_ENABLE
     #endif
 
     // (optinal) Headphone-detection (leave unchanged if in doubts...)

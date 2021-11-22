@@ -17,10 +17,12 @@ uint16_t cycles = 0;
 
 MAX17055 sensor;
 
+extern TwoWire i2cBusTwo;
+
 void Battery_InitImpl()
 {
     bool POR = sensor.getPOR();
-    sensor.init(delay, s_batteryCapacity, s_emptyVoltage, s_recoveryVoltage, s_batteryChemistry, s_vCharge, s_resistSensor);
+    sensor.init(s_batteryCapacity, s_emptyVoltage, s_recoveryVoltage, s_batteryChemistry, s_vCharge, s_resistSensor, &i2cBusTwo, &delay);
     cycles = gPrefsSettings.getUShort("MAX17055_cycles", 0x0000);
     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f", (char *)"Cycles saved in NVS:", cycles/100.0);
     Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
@@ -46,7 +48,7 @@ void Battery_InitImpl()
 
         if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0x0000) {
             Log_Println("Successfully loaded fuel gauge parameters.", LOGLEVEL_NOTICE);
-            sensor.restoreLearnedParameters(delay, rComp0, tempCo, fullCapRep, cycles, fullCapNom);
+            sensor.restoreLearnedParameters(rComp0, tempCo, fullCapRep, cycles, fullCapNom);
         } else {
             Log_Println("Failed loading fuel gauge parameters.", LOGLEVEL_NOTICE);
         }
@@ -71,7 +73,7 @@ void Battery_InitImpl()
     float vBatteryLow = gPrefsSettings.getFloat("batteryLow", 999.99);
     if (vBatteryLow <= 999) {
         batteryLow = vBatteryLow;
-        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)FPSTR(batteryLowFromNVS), batteryLow);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f %%", (char *)FPSTR(batteryLowFromNVS), batteryLow);
         Log_Println(Log_Buffer, LOGLEVEL_INFO);
     }
     else
@@ -82,7 +84,7 @@ void Battery_InitImpl()
     float vBatteryCritical = gPrefsSettings.getFloat("batteryCritical", 999.99);
     if (vBatteryCritical <= 999) {
         batteryCritical = vBatteryCritical;
-        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)FPSTR(batteryCriticalFromNVS), batteryCritical);
+        snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f %%", (char *)FPSTR(batteryCriticalFromNVS), batteryCritical);
         Log_Println(Log_Buffer, LOGLEVEL_INFO);
     }
     else
