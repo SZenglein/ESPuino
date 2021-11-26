@@ -200,7 +200,7 @@
     #endif
 
     #ifdef MEASURE_BATTERY_MAX17055
-        constexpr float s_batteryLow = 20.0;            // low percentage
+        constexpr float s_batteryLow = 15.0;            // low percentage
         constexpr float s_batteryCritical = 5.0;        // critical percentage
 
         constexpr uint16_t s_batteryCapacity = 6000;    // design cap of battery (mAh)
