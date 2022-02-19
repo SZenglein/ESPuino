@@ -40,15 +40,15 @@
     #define SHUTDOWN_IF_SD_BOOT_FAILS       // Will put ESP to deepsleep if boot fails due to SD. Really recommend this if there's in battery-mode no other way to restart ESP! Interval adjustable via deepsleepTimeAfterBootFails.
     //#define MEASURE_BATTERY_VOLTAGE         // Enables battery-measurement via GPIO (ADC) and voltage-divider
     #define MEASURE_BATTERY_MAX17055      // Enables battery-measurement via external fuel gauge (MAX17055)
-    //#define PLAY_LAST_RFID_AFTER_REBOOT   // When restarting ESPuino, the last RFID that was active before, is recalled and played
+    #define PLAY_LAST_RFID_AFTER_REBOOT   // When restarting ESPuino, the last RFID that was active before, is recalled and played
     //#define USE_LAST_VOLUME_AFTER_REBOOT  // Remembers the volume used at last shutdown after reboot
     #define USEROTARY_ENABLE                // If rotary-encoder is used (don't forget to review WAKEUP_BUTTON if you disable this feature!)
     #define BLUETOOTH_ENABLE                // If enabled and bluetooth-mode is active, you can stream to your ESPuino via bluetooth (a2dp-sink).
     //#define IR_CONTROL_ENABLE             // Enables remote control (https://forum.espuino.de/t/neues-feature-fernsteuerung-per-infrarot-fernbedienung/265)
     #define CACHED_PLAYLIST_ENABLE          // Enables playlist-caching (infos: https://forum.espuino.de/t/neues-feature-cached-playlist/515)
     //#define PAUSE_WHEN_RFID_REMOVED       // Playback starts when card is applied and pauses automatically, when card is removed (https://forum.espuino.de/t/neues-feature-pausieren-wenn-rfid-karte-entfernt-wurde/541)
-    //#define SAVE_PLAYPOS_BEFORE_SHUTDOWN  // When playback is active and mode audiobook was selected, last play-position is saved automatically when shutdown is initiated
-    //#define SAVE_PLAYPOS_WHEN_RFID_CHANGE // When playback is active and mode audiobook was selected, last play-position is saved automatically for old playlist when new RFID-tag is applied
+    #define SAVE_PLAYPOS_BEFORE_SHUTDOWN  // When playback is active and mode audiobook was selected, last play-position is saved automatically when shutdown is initiated
+    #define SAVE_PLAYPOS_WHEN_RFID_CHANGE // When playback is active and mode audiobook was selected, last play-position is saved automatically for old playlist when new RFID-tag is applied
 
 
     //################## select SD card mode #############################
@@ -107,30 +107,30 @@
         If you don't want to assign an action or you don't use a given button: CMD_NOTHING has to be set
     */
     // *****BUTTON*****        *****ACTION*****
-    #define BUTTON_0_SHORT    CMD_NEXTTRACK
-    #define BUTTON_1_SHORT    CMD_PREVTRACK
+    #define BUTTON_0_SHORT    CMD_PREVTRACK
+    #define BUTTON_1_SHORT    CMD_NEXTTRACK
     #define BUTTON_2_SHORT    CMD_PLAYPAUSE
-    #define BUTTON_3_SHORT    CMD_MEASUREBATTERY  // just for testing CMD_PLAYPAUSE
+    #define BUTTON_3_SHORT    CMD_PLAYPAUSE  // just for testing CMD_PLAYPAUSE
     #define BUTTON_4_SHORT    CMD_NOTHING
     #define BUTTON_5_SHORT    CMD_NOTHING
 
-    #define BUTTON_0_LONG     CMD_LASTTRACK
-    #define BUTTON_1_LONG     CMD_FIRSTTRACK
+    #define BUTTON_0_LONG     CMD_SEEK_BACKWARDS
+    #define BUTTON_1_LONG     CMD_SEEK_FORWARDS
     #define BUTTON_2_LONG     CMD_PLAYPAUSE
     #define BUTTON_3_LONG     CMD_SLEEPMODE
     #define BUTTON_4_LONG     CMD_NOTHING
     #define BUTTON_5_LONG     CMD_NOTHING
 
-    #define BUTTON_MULTI_01   CMD_TOGGLE_WIFI_STATUS
-    #define BUTTON_MULTI_02   CMD_ENABLE_FTP_SERVER
+    #define BUTTON_MULTI_01   CMD_MEASUREBATTERY // CMD_TOGGLE_WIFI_STATUS
+    #define BUTTON_MULTI_02   CMD_NOTHING // CMD_ENABLE_FTP_SERVER
     #define BUTTON_MULTI_03   CMD_NOTHING
     #define BUTTON_MULTI_04   CMD_NOTHING
     #define BUTTON_MULTI_05   CMD_NOTHING
     #define BUTTON_MULTI_12   CMD_TELL_IP_ADDRESS
-    #define BUTTON_MULTI_13   CMD_NOTHING
+    #define BUTTON_MULTI_13   CMD_NOTHING // CMD_TOGGLE_BLUETOOTH_MODE
     #define BUTTON_MULTI_14   CMD_NOTHING
     #define BUTTON_MULTI_15   CMD_NOTHING
-    #define BUTTON_MULTI_23   CMD_NOTHING
+    #define BUTTON_MULTI_23   CMD_NOTHING // CMD_TOGGLE_WIFI_STATUS
     #define BUTTON_MULTI_24   CMD_NOTHING
     #define BUTTON_MULTI_25   CMD_NOTHING
     #define BUTTON_MULTI_34   CMD_NOTHING

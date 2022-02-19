@@ -135,13 +135,20 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
 
             // 1. check for an ISO-14443 card
             } else if (RFID_PN5180_NFC14443_STATE_RESET == stateMachine) {
+                //Serial.println("nfc14443 reset");
                 nfc14443.reset();
                 //snprintf(Log_Buffer, Log_BufferLength, "%u", uxTaskGetStackHighWaterMark(NULL));
                 //Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
             } else if (RFID_PN5180_NFC14443_STATE_SETUPRF == stateMachine) {
-                nfc14443.setupRF();
+                //Serial.println("nfc14443 setupRF");
+                //nfc14443.reset();//nfc14443.setupRF();
             } else if (RFID_PN5180_NFC14443_STATE_READCARD == stateMachine) {
-                if (nfc14443.readCardSerial(uid) >= 4u) {
+                int uidLength = nfc14443.readCardSerial(uid);
+                //Serial.print("uid length: ");
+                //Serial.println(uidLength);
+                if (uidLength >= 4) {
+                    //Serial.print("detected nfc14443 card: ");
+                    //Serial.println();
                     cardReceived = true;
                     stateMachine = RFID_PN5180_NFC14443_STATE_ACTIVE;
                     lastTimeDetected14443 = millis();
@@ -149,10 +156,11 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
                         cardAppliedCurrentRun = true;
                     #endif
                 } else {
+                    //Serial.println("did not detect nfc14443 card");
                     // Reset to dummy-value if no card is there
                     // Necessary to differentiate between "card is still applied" and "card is re-applied again after removal"
                     // lastTimeDetected14443 is used to prevent "new card detection with old card" with single events where no card was detected
-                    if (!lastTimeDetected14443 || (millis() - lastTimeDetected14443 >= 400)) {
+                    if (!lastTimeDetected14443 || (millis() - lastTimeDetected14443 >= 2500)) {
                         lastTimeDetected14443 = 0;
                         #ifdef PAUSE_WHEN_RFID_REMOVED
                             cardAppliedCurrentRun = false;
@@ -183,6 +191,7 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
                 // try to read ISO15693 inventory
                 ISO15693ErrorCode rc = nfc15693.getInventory(uid);
                 if (rc == ISO15693_EC_OK) {
+                    //Serial.println("detected iso15693 card");
                     cardReceived = true;
                     stateMachine = RFID_PN5180_NFC15693_STATE_ACTIVE;
                     lastTimeDetected15693 = millis();
@@ -190,8 +199,9 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
                         cardAppliedCurrentRun = true;
                     #endif
                 } else {
+                    //Serial.println("did not detect iso15693 card");
                     // lastTimeDetected15693 is used to prevent "new card detection with old card" with single events where no card was detected
-                    if (!lastTimeDetected15693 || (millis() - lastTimeDetected15693 >= 400)) {
+                    if (!lastTimeDetected15693 || (millis() - lastTimeDetected15693 >= 2500)) {
                         lastTimeDetected15693 = 0;
                         #ifdef PAUSE_WHEN_RFID_REMOVED
                             cardAppliedCurrentRun = false;

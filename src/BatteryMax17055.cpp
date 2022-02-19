@@ -31,12 +31,12 @@ void Battery_InitImpl()
     if (por){
         // TODO i18n necessary?
         Log_Println("Battery detected power loss - loading fuel gauge parameters.", LOGLEVEL_NOTICE);
-        uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0x0000);
-        uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0x0000);
-        uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0x0000);
-        uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0x0000);
+        uint16_t rComp0     = gPrefsSettings.getUShort("rComp0", 0xFFFF);
+        uint16_t tempCo     = gPrefsSettings.getUShort("tempCo", 0xFFFF);
+        uint16_t fullCapRep = gPrefsSettings.getUShort("fullCapRep", 0xFFFF);
+        uint16_t fullCapNom = gPrefsSettings.getUShort("fullCapNom", 0xFFFF);
 
-        Log_Println("Loaded MAX17055 attery model parameters from NVS:", LOGLEVEL_DEBUG);
+        Log_Println("Loaded MAX17055 battery model parameters from NVS:", LOGLEVEL_DEBUG);
         snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"rComp0", rComp0);
         Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
         snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"tempCo", tempCo);
@@ -46,7 +46,7 @@ void Battery_InitImpl()
         snprintf(Log_Buffer, Log_BufferLength, "%s: 0x%.4x", (char *)"fullCapNom", fullCapNom);
         Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
 
-        if ((rComp0 & tempCo & fullCapRep & cycles & fullCapNom) != 0x0000) {
+        if ((rComp0 & tempCo & fullCapRep & fullCapNom) != 0xFFFF) {
             Log_Println("Successfully loaded fuel gauge parameters.", LOGLEVEL_NOTICE);
             sensor.restoreLearnedParameters(rComp0, tempCo, fullCapRep, cycles, fullCapNom);
         } else {
@@ -95,12 +95,13 @@ void Battery_InitImpl()
 
 void Battery_CyclicImpl(){
     // It is recommended to save the learned capacity parameters every time bit 6 of the Cycles register toggles 
-    if (cycles + 0x0040 <= sensor.getCycles()) {
+    uint16_t sensorCycles = sensor.getCycles();
+    // sensorCycles = 0xFFFF likely means read error
+    if (sensor.getPresent() &&  sensorCycles != 0xFFFF && uint16_t (cycles + 0x0040) <= sensorCycles) {
         Log_Println("Battery Cycle passed 64%, store MAX17055 learned parameters", LOGLEVEL_DEBUG);
         uint16_t rComp0;
         uint16_t tempCo;
         uint16_t fullCapRep;
-        uint16_t sensorCycles;
         uint16_t fullCapNom;
         sensor.getLearnedParameters(rComp0, tempCo, fullCapRep, sensorCycles, fullCapNom);
         gPrefsSettings.putUShort("rComp0", rComp0);
