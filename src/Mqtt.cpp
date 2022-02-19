@@ -9,6 +9,7 @@
 #include "System.h"
 #include "Queues.h"
 #include "Wlan.h"
+#include "revision.h"
 
 #ifdef MQTT_ENABLE
     #define MQTT_SOCKET_TIMEOUT 1 // https://github.com/knolleary/pubsubclient/issues/403
@@ -276,6 +277,11 @@ bool Mqtt_Reconnect() {
                 publishMqtt((char *) FPSTR(topicRepeatModeState), 0, false);
                 publishMqtt((char *) FPSTR(topicCurrentIPv4IP), Wlan_GetIpAddress().c_str(), false);
 
+                char revBuf[12];
+                strncpy(revBuf, softwareRevision+19, sizeof(revBuf)-1);
+                revBuf[sizeof(revBuf)-1] = '\0';
+                publishMqtt((char *) FPSTR(topicSRevisionState), revBuf, false);
+
                 return Mqtt_PubSubClient.connected();
             } else {
                 snprintf(Log_Buffer, Log_BufferLength, "%s: rc=%i (%d / %d)", (char *) FPSTR(mqttConnFailed), Mqtt_PubSubClient.state(), i, mqttMaxRetriesPerInterval);
@@ -324,30 +330,40 @@ void Mqtt_ClientCallback(const char *topic, const byte *payload, uint32_t length
                 gPlayProperties.sleepAfterPlaylist = true;
                 Log_Println((char *) FPSTR(sleepTimerEOP), LOGLEVEL_NOTICE);
                 publishMqtt((char *) FPSTR(topicSleepTimerState), "EOP", false);
+                Led_ResetToNightBrightness();
+                publishMqtt((char *) FPSTR(topicLedBrightnessState), Led_GetBrightness(), false);
                 System_IndicateOk();
                 return;
             } else if (strcmp(receivedString, "EOT") == 0) {
                 gPlayProperties.sleepAfterCurrentTrack = true;
                 Log_Println((char *) FPSTR(sleepTimerEOT), LOGLEVEL_NOTICE);
                 publishMqtt((char *) FPSTR(topicSleepTimerState), "EOT", false);
+                Led_ResetToNightBrightness();
+                publishMqtt((char *) FPSTR(topicLedBrightnessState), Led_GetBrightness(), false);
                 System_IndicateOk();
                 return;
             } else if (strcmp(receivedString, "EO5T") == 0) {
                 if ((gPlayProperties.numberOfTracks - 1) >= (gPlayProperties.currentTrackNumber + 5)) {
                     gPlayProperties.playUntilTrackNumber = gPlayProperties.currentTrackNumber + 5;
                 } else {
-                    gPlayProperties.sleepAfterPlaylist = true;
+                    gPlayProperties.sleepAfterPlaylist = true;  // If +5 tracks is > than active playlist, take end of current playlist
                 }
                 Log_Println((char *) FPSTR(sleepTimerEO5), LOGLEVEL_NOTICE);
                 publishMqtt((char *) FPSTR(topicSleepTimerState), "EO5T", false);
+                Led_ResetToNightBrightness();
+                publishMqtt((char *) FPSTR(topicLedBrightnessState), Led_GetBrightness(), false);
                 System_IndicateOk();
                 return;
-            } else if (strcmp(receivedString, "0") == 0) {
+            } else if (strcmp(receivedString, "0") == 0) {  // Disable sleep after it was active previously
                 if (System_IsSleepTimerEnabled()) {
                     System_DisableSleepTimer();
                     Log_Println((char *) FPSTR(sleepTimerStop), LOGLEVEL_NOTICE);
                     System_IndicateOk();
                     publishMqtt((char *) FPSTR(topicSleepState), 0, false);
+                    publishMqtt((char *) FPSTR(topicLedBrightnessState), Led_GetBrightness(), false);
+                    gPlayProperties.sleepAfterPlaylist = false;
+                    gPlayProperties.sleepAfterCurrentTrack = false;
+                    gPlayProperties.playUntilTrackNumber = 0;
                     return;
                 } else {
                     Log_Println((char *) FPSTR(sleepTimerAlreadyStopped), LOGLEVEL_INFO);

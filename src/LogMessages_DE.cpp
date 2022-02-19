@@ -45,7 +45,6 @@
     const char cmndLastTrack[] PROGMEM = "Kommando: Letzter Titel von Playlist";
     const char cmndDoesNotExist[] PROGMEM = "Dieses Kommando existiert nicht.";
     const char lastTrackAlreadyActive[] PROGMEM = "Es wird bereits der letzte Track gespielt.";
-    const char firstTrackAlreadyActive[] PROGMEM = "Es wird bereits der erste Track gespielt.";
     const char trackStartAudiobook[] PROGMEM = "Titel wird im Hörspielmodus von vorne gespielt.";
     const char trackStart[] PROGMEM = "Titel wird von vorne gespielt.";
     const char trackChangeWebstream[] PROGMEM = "Im Webradio-Modus kann nicht an den Anfang gesprungen werden.";
@@ -88,6 +87,7 @@
     const char modificatorSleepTimer60[] PROGMEM = "Modifikator: Sleep-Timer per RFID aktiviert (60 Minuten).";
     const char modificatorSleepTimer120[] PROGMEM = "Modifikator: Sleep-Timer per RFID aktiviert (2 Stunden).";
     const char ledsDimmedToNightmode[] PROGMEM = "LEDs wurden auf Nachtmodus gedimmt.";
+    const char ledsDimmedToInitialValue[] PROGMEM = "LEDs wurden auf initiale Helligkeit gedimmt.";
     const char modificatorNotallowedWhenIdle[] PROGMEM = "Modifikator kann bei nicht aktivierter Playlist nicht angewendet werden.";
     const char modificatorSleepAtEOT[] PROGMEM = "Modifikator: Sleep-Timer am Ende des Titels aktiviert.";
     const char modificatorSleepAtEOTd[] PROGMEM = "Modifikator: Sleep-Timer am Ende des Titels deaktiviert.";
@@ -218,4 +218,11 @@
     const char noPlaylist[] PROGMEM = "Keine Playlist aktiv.";
     const char rfidTagRemoved[] PROGMEM = "RFID-Karte wurde entfernt";
     const char rfidTagReapplied[] PROGMEM = "RFID-Karte erneut aufgelegt";
+    const char ftpEnableTooLate[] PROGMEM = "FTP kann nur innerhalb der ersten 30s aktiviert werden. Kinderschutz :-)";
+    const char syncingViaNtp[] PROGMEM = "Synchronisiere Uhrzeit via NTP...";
+    const char sdInfo[] PROGMEM = "SD-Kartengröße / freier Speicherplatz";
+    const char paOn[] PROGMEM = "Lautsprecher eingeschaltet";
+    const char paOff[] PROGMEM = "Lautsprecher ausgeschaltet";
+    const char hpOn[] PROGMEM = "Kopfhörer eingeschaltet";
+    const char hpOff[] PROGMEM = "Kopfhörer ausgeschaltet";
 #endif

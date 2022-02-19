@@ -3,6 +3,8 @@
 #include <Update.h>
 #include <nvsDump.h>
 #include <esp_task_wdt.h>
+#include "soc/timer_group_struct.h"
+#include "soc/timer_group_reg.h"
 #include "freertos/ringbuf.h"
 #include "ESPAsyncWebServer.h"
 #include "ArduinoJson.h"
@@ -22,6 +24,7 @@
 #include "Web.h"
 #include "Wlan.h"
 #include "revision.h"
+
 
 #if (LANGUAGE == DE)
     #include "HTMLaccesspoint_DE.h"
@@ -57,6 +60,7 @@ static void handleUpload(AsyncWebServerRequest *request, String filename, size_t
 static void explorerHandleFileUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 static void explorerHandleFileStorageTask(void *parameter);
 static void explorerHandleListRequest(AsyncWebServerRequest *request);
+static void explorerHandleDownloadRequest(AsyncWebServerRequest *request);
 static void explorerHandleDeleteRequest(AsyncWebServerRequest *request);
 static void explorerHandleCreateRequest(AsyncWebServerRequest *request);
 static void explorerHandleRenameRequest(AsyncWebServerRequest *request);
@@ -151,7 +155,7 @@ void webserverStart(void) {
                 request->send(gFSystem, "/.html/index.htm", String(), false, templateProcessor);
             } else {
                 // serve webpage from PROGMEM
-                request->send_P(200, "text/html", management_HTML, templateProcessor);    
+                request->send_P(200, "text/html", management_HTML, templateProcessor);
             }
         });
         // Log
@@ -159,33 +163,31 @@ void webserverStart(void) {
             request->send(200, "text/plain; charset=utf-8", Log_GetRingBuffer());
         });
 
-        // heap/psram-info
+        // software/wifi/heap/psram-info
         wServer.on(
             "/info", HTTP_GET, [](AsyncWebServerRequest *request) {
+                String info = "ESPuino " + (String) softwareRevision;
+                info += "\nESP-IDF version: " + String(ESP.getSdkVersion());
                 #if (LANGUAGE == DE)
-                    String info = "Freier Heap: " + String(ESP.getFreeHeap()) + " Bytes";
+                    info += "\nFreier Heap: " + String(ESP.getFreeHeap()) + " Bytes";
                     info += "\nGroesster freier Heap-Block: " + String((uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)) + " Bytes";
                     info += "\nFreier PSRAM: ";
                     info += (!psramInit()) ? "nicht verfuegbar" : String(ESP.getFreePsram());
                     if (Wlan_IsConnected()) {
+                        IPAddress myIP = WiFi.localIP();
+                        info += "\nAktuelle IP: " + String(myIP[0]) + '.' + String(myIP[1]) + '.' + String(myIP[2]) + '.' + String(myIP[3]);
                         info += "\nWLAN-Signalstaerke: " + String((int8_t)Wlan_GetRssi()) + " dBm";
                     }
-                    info += "\nESP-IDF-version (major): ";
-                    info += ESP_IDF_VERSION_MAJOR;
-                    info += "\nESP-IDF-version (minor): ";
-                    info += ESP_IDF_VERSION_MINOR;
                 #else
-                    String info = "Free heap: " + String(ESP.getFreeHeap()) + " bytes";
+                    info += "\nFree heap: " + String(ESP.getFreeHeap()) + " bytes";
                     info += "\nLargest free heap-block: " + String((uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)) + " bytes";
                     info += "\nFree PSRAM: ";
                     info += (!psramInit()) ? "not available" : String(ESP.getFreePsram());
                     if (Wlan_IsConnected()) {
+                        IPAddress myIP = WiFi.localIP();
+                        info += "\nCurrent IP: " + String(myIP[0]) + '.' + String(myIP[1]) + '.' + String(myIP[2]) + '.' + String(myIP[3]);
                         info += "\nWiFi signal-strength: " + String((int8_t)Wlan_GetRssi()) + " dBm";
                     }
-                    info += "ESP-IDF major: ";
-                    info += ESP_IDF_VERSION_MAJOR;
-                    info += "\nESP-IDF minor: ";
-                    info += ESP_IDF_VERSION_MINOR;
                 #endif
                 #ifdef BATTERY_MEASURE_ENABLE
                     snprintf(Log_Buffer, Log_BufferLength, "\n%s: %.2f V", (char *) FPSTR(currentVoltageMsg), Battery_GetVoltage());
@@ -193,7 +195,6 @@ void webserverStart(void) {
                     snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f %%", (char *)FPSTR(currentChargeMsg), Battery_EstimateSOC());
                     info += (String) Log_Buffer;
                 #endif
-                info += "\n" + (String) softwareRevision;
                 request->send_P(200, "text/plain", info.c_str());
             });
 
@@ -255,6 +256,7 @@ void webserverStart(void) {
             Web_DumpNvsToSd("rfidTags", (const char*) FPSTR(backupFile));
         });
 
+
         // Fileexplorer (realtime)
         wServer.on("/explorer", HTTP_GET, explorerHandleListRequest);
 
@@ -263,6 +265,8 @@ void webserverStart(void) {
                 request->send(200);
             },
             explorerHandleFileUpload);
+
+        wServer.on("/explorerdownload", HTTP_GET, explorerHandleDownloadRequest);
 
         wServer.on("/explorer", HTTP_DELETE, explorerHandleDeleteRequest);
 
@@ -405,7 +409,7 @@ String templateProcessor(const String &templ) {
 bool processJsonRequest(char *_serialJson) {
     if (!_serialJson)  {
         return false;
-    }    
+    }
     #ifdef BOARD_HAS_PSRAM
         SpiRamJsonDocument doc(1000);
     #else
@@ -413,7 +417,7 @@ bool processJsonRequest(char *_serialJson) {
     #endif
 
     DeserializationError error = deserializeJson(doc, _serialJson);
- 
+
     if (error) {
         #if (LANGUAGE == DE)
             Serial.print(F("deserializeJson() fehlgeschlagen: "));
@@ -472,6 +476,11 @@ bool processJsonRequest(char *_serialJson) {
         if (!(String(_ftpUser).equals(gPrefsSettings.getString("ftpuser", "-1")) ||
               String(_ftpPwd).equals(gPrefsSettings.getString("ftppassword", "-1")))) {
             return false;
+        }
+    } else if (doc.containsKey("ftpStatus")) {
+        uint8_t _ftpStart = doc["ftpStatus"]["start"].as<uint8_t>();
+        if (_ftpStart == 1) { // ifdef FTP_ENABLE is checked in Ftp_EnableServer()
+            Ftp_EnableServer();
         }
     } else if (doc.containsKey("mqtt")) {
         uint8_t _mqttEnable = doc["mqtt"]["mqttEnable"].as<uint8_t>();
@@ -560,7 +569,7 @@ bool processJsonRequest(char *_serialJson) {
     } else if (doc.containsKey("volume")) {
         Web_SendWebsocketData(0, 50);
     }
-    
+
     return true;
 }
 
@@ -580,18 +589,26 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
         object["rfidId"] = gCurrentRfidTagId;
     } else if (code == 20) {
         object["pong"] = "pong";
+        object["rssi"] = Wlan_GetRssi();
+        // todo: battery percent + loading status +++
+        //object["battery"] = Battery_GetVoltage();
     } else if (code == 30) {
         JsonObject entry = object.createNestedObject("trackinfo");
         entry["pausePlay"] = gPlayProperties.pausePlay;
         entry["currentTrackNumber"] = gPlayProperties.currentTrackNumber + 1;
         entry["numberOfTracks"] = gPlayProperties.numberOfTracks;
         entry["volume"] = AudioPlayer_GetCurrentVolume();
-        if (gPlayProperties.title)  {
-            // show current audio title from id3 metadata 
+        if (gPlayProperties.title != NULL && strcmp(gPlayProperties.title, "") != 0) {
+            // show current audio title from id3 metadata
+            if (gPlayProperties.numberOfTracks > 1) {
+                snprintf(Log_Buffer, Log_BufferLength, "(%u / %u): %s", gPlayProperties.currentTrackNumber+1,  gPlayProperties.numberOfTracks, gPlayProperties.title);
+            } else {
+                snprintf(Log_Buffer, Log_BufferLength, "%s", gPlayProperties.title);
+            };
             char utf8Buffer[200];
-            convertAsciiToUtf8(gPlayProperties.title, utf8Buffer);
+            convertAsciiToUtf8(Log_Buffer, utf8Buffer);
             entry["name"] = utf8Buffer;
-        } else  if (gPlayProperties.playMode == NO_PLAYLIST) {
+        } else if (gPlayProperties.playMode == NO_PLAYLIST) {
             // no active playlist
             entry["name"] = (char *)FPSTR (noPlaylist);
         } else {
@@ -686,7 +703,7 @@ void explorerHandleFileUpload(AsyncWebServerRequest *request, String filename, s
 
         // Create Ringbuffer for upload
         if (explorerFileUploadRingBuffer == NULL) {
-            explorerFileUploadRingBuffer = xRingbufferCreate(4096, RINGBUF_TYPE_BYTEBUF);
+            explorerFileUploadRingBuffer = xRingbufferCreate(8192, RINGBUF_TYPE_BYTEBUF);
         }
 
         // Create Queue for receiving a signal from the store task as synchronisation
@@ -723,51 +740,80 @@ void explorerHandleFileUpload(AsyncWebServerRequest *request, String filename, s
     }
 }
 
-void explorerHandleFileStorageTask(void *parameter) {
+// feed the watchdog timer without delay
+void feedTheDog(void) {
+    #ifdef SD_MMC_1BIT_MODE
+        // feed dog 0
+        TIMERG0.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
+        TIMERG0.wdt_feed=1;                       // feed dog
+        TIMERG0.wdt_wprotect=0;                   // write protect
+        // feed dog 1
+        TIMERG1.wdt_wprotect=TIMG_WDT_WKEY_VALUE; // write enable
+        TIMERG1.wdt_feed=1;                       // feed dog
+        TIMERG1.wdt_wprotect=0;                   // write protect
+    #else
+    // Without delay upload-feature is broken for SD via SPI (for whatever reason...)
+        vTaskDelay(portTICK_PERIOD_MS * 11);
+    #endif
+}
 
+void explorerHandleFileStorageTask(void *parameter) {
     File uploadFile;
     size_t item_size;
     size_t bytesOk = 0;
     size_t bytesNok = 0;
+    uint32_t chunkCount = 0;
     uint32_t transferStartTimestamp = millis();
     uint8_t *item;
     uint8_t value = 0;
 
     BaseType_t uploadFileNotification;
     uint32_t uploadFileNotificationValue;
-
     uploadFile = gFSystem.open((char *)parameter, "w");
-
+    size_t maxItems = xRingbufferGetMaxItemSize(explorerFileUploadRingBuffer);
     for (;;) {
-        //esp_task_wdt_reset();
-
-        item = (uint8_t *)xRingbufferReceive(explorerFileUploadRingBuffer, &item_size, portTICK_PERIOD_MS * 100);
-        if (item != NULL) {
-            if (!uploadFile.write(item, item_size)) {
-                bytesNok += item_size;
-            } else {
-                bytesOk += item_size;
-            }
-            vRingbufferReturnItem(explorerFileUploadRingBuffer, (void *)item);
-        } else {
-            // No data in the buffer, check if all data arrived for the file
+        // check buffer is filled with enough data
+        size_t itemsFree = xRingbufferGetCurFreeSize(explorerFileUploadRingBuffer);
+        item_size = maxItems - itemsFree;
+        if (item_size < (maxItems / 2)) {
+            // not enough data in the buffer, check if all data arrived for the file
             uploadFileNotification = xTaskNotifyWait(0, 0, &uploadFileNotificationValue, 0);
             if (uploadFileNotification == pdPASS) {
+                item = (uint8_t *)xRingbufferReceive(explorerFileUploadRingBuffer, &item_size, portTICK_PERIOD_MS * 100);
+                if (item != NULL) {
+                    chunkCount++;
+                    if (!uploadFile.write(item, item_size)) {
+                        bytesNok += item_size;
+                    } else {
+                        bytesOk += item_size;
+                    }
+                    vRingbufferReturnItem(explorerFileUploadRingBuffer, (void *)item);
+                    vTaskDelay(portTICK_PERIOD_MS * 20);
+                }
                 uploadFile.close();
                 snprintf(Log_Buffer, Log_BufferLength, "%s: %s => %zu bytes in %lu ms (%lu kB/s)", (char *)FPSTR (fileWritten), (char *)parameter, bytesNok+bytesOk, (millis() - transferStartTimestamp), (bytesNok+bytesOk)/(millis() - transferStartTimestamp));
                 Log_Println(Log_Buffer, LOGLEVEL_INFO);
-                snprintf(Log_Buffer, Log_BufferLength, "Bytes [ok] %zu / [not ok] %zu\n", bytesOk, bytesNok);
+                snprintf(Log_Buffer, Log_BufferLength, "Bytes [ok] %zu / [not ok] %zu, Chunks: %zu\n", bytesOk, bytesNok, chunkCount);
                 Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
                 // done exit loop to terminate
                 break;
             }
-            vTaskDelay(portTICK_PERIOD_MS * 20);
+            vTaskDelay(portTICK_PERIOD_MS * 5);
+            continue;
         }
-        #ifdef SD_MMC_1BIT_MODE
-            vTaskDelay(portTICK_PERIOD_MS * 1);
-        #else
-            vTaskDelay(portTICK_PERIOD_MS * 6);
-        #endif
+
+        item = (uint8_t *)xRingbufferReceive(explorerFileUploadRingBuffer, &item_size, portTICK_PERIOD_MS * 100);
+        if (item != NULL) {
+            chunkCount++;
+            if (!uploadFile.write(item, item_size)) {
+                bytesNok += item_size;
+                feedTheDog();
+            } else {
+                bytesOk += item_size;
+            }
+            vRingbufferReturnItem(explorerFileUploadRingBuffer, (void *)item);
+            feedTheDog();
+        }
     }
     // send signal to upload function to terminate
     xQueueSend(explorerFileUploadStatusQueue, &value, 0);
@@ -777,6 +823,7 @@ void explorerHandleFileStorageTask(void *parameter) {
 // Sends a list of the content of a directory as JSON file
 // requires a GET parameter path for the directory
 void explorerHandleListRequest(AsyncWebServerRequest *request) {
+    uint32_t listStartTimestamp = millis();
     //DynamicJsonDocument jsonBuffer(8192);
     #ifdef BOARD_HAS_PSRAM
         SpiRamJsonDocument jsonBuffer(65636);
@@ -822,17 +869,23 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
             entry["name"] = fileName;
             entry["dir"].set(file.isDirectory());
         }
+        file.close();
         file = root.openNextFile();
 
-        // If playback is active this can (at least sometimes) prevent scattering
+        
         if (!gPlayProperties.pausePlay) {
-            vTaskDelay(portTICK_PERIOD_MS * 5);
+            // time critical, avoid delay with many files on SD-card!
+            feedTheDog(); 
         } else {
-            vTaskDelay(portTICK_PERIOD_MS * 1);
+            // If playback is active this can (at least sometimes) prevent scattering
+            vTaskDelay(portTICK_PERIOD_MS * 5);
         }
     }
+    root.close();
 
     serializeJson(obj, serializedJsonString);
+    snprintf(Log_Buffer, Log_BufferLength, "build filelist finished: %lu ms", (millis() - listStartTimestamp));
+    Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
     request->send(200, "application/json; charset=utf-8", serializedJsonString);
 }
 
@@ -872,6 +925,61 @@ void Web_DeleteCachefile(const char *fileOrDirectory) {
         }
     }
 }
+
+// Handles download request of a file 
+// requires a GET parameter path to the file 
+void explorerHandleDownloadRequest(AsyncWebServerRequest *request) {
+    File file;
+    AsyncWebParameter *param;
+    char filePath[MAX_FILEPATH_LENTGH];
+    // check has path param
+    if (!request->hasParam("path")) {
+        Log_Println("DOWNLOAD: No path variable set", LOGLEVEL_ERROR);
+        request->send(404);
+        return;
+    } 
+    // check file exists on SD card
+    param = request->getParam("path");
+    convertUtf8ToAscii(param->value(), filePath);
+    if (!gFSystem.exists(filePath)) {
+        snprintf(Log_Buffer, Log_BufferLength, "DOWNLOAD:  File not found on SD card: %s", param->value().c_str());
+        Log_Println(Log_Buffer, LOGLEVEL_ERROR);
+        request->send(404);
+        return;
+    } 
+    // check is file and not a directory
+    file = gFSystem.open(filePath);
+    if (file.isDirectory()) {
+        snprintf(Log_Buffer, Log_BufferLength, "DOWNLOAD:  Cannot download a directory %s", param->value().c_str());
+        Log_Println(Log_Buffer, LOGLEVEL_ERROR);
+        request->send(404);
+        file.close();
+        return;
+    } 
+
+    // ready to serve the file for download. 
+    String dataType = "application/octet-stream";
+    struct fileBlk {
+        File dataFile;
+    };
+    fileBlk *fileObj = new fileBlk;
+    fileObj->dataFile = file;
+    request->_tempObject = (void*)fileObj;
+    
+    AsyncWebServerResponse *response = request->beginResponse(dataType, fileObj->dataFile.size(), [request](uint8_t *buffer, size_t maxlen, size_t index) -> size_t {
+        fileBlk *fileObj = (fileBlk*)request->_tempObject;
+        size_t thisSize = fileObj->dataFile.read(buffer, maxlen);
+        if((index + thisSize) >= fileObj->dataFile.size()){
+            fileObj->dataFile.close();
+            request->_tempObject = NULL;
+            delete fileObj;
+        }
+        return thisSize;
+    });
+    String filename = String(param->value().c_str());
+    response->addHeader("Content-Disposition","attachment; filename=\"" + filename + "\"");
+    request->send(response);
+}   
 
 // Handles delete request of a file or directory
 // requires a GET parameter path to the file or directory
@@ -1146,10 +1254,11 @@ bool Web_DumpNvsToSd(const char *_namespace, const char *_destFile) {
 
 // handle album cover image request
 static void handleCoverImageRequest(AsyncWebServerRequest *request) {
-    if (!gFSystem.exists("/.cover")) {
+     
+    if (!gPlayProperties.coverFilePos) {
         // empty image:
-        // request->send(200, "image/svg+xml", "<?xml version=\"1.0\"?><svg xmlns=\"http://www.w3.org/2000/svg\"/>"); 
-        if (gPlayProperties.isWebstream) {
+        // request->send(200, "image/svg+xml", "<?xml version=\"1.0\"?><svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+        if (gPlayProperties.playMode == WEBSTREAM) {
             // no cover -> send placeholder icon for webstream (fa-soundcloud)
             snprintf(Log_Buffer, Log_BufferLength, "no cover image for webstream");
             Log_Println(Log_Buffer, LOGLEVEL_NOTICE);
@@ -1157,51 +1266,52 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
         } else {
             // no cover -> send placeholder icon for playing music from SD-card (fa-music)
             snprintf(Log_Buffer, Log_BufferLength, "no cover image for SD-card audio");
-            Log_Println(Log_Buffer, LOGLEVEL_NOTICE);
+            Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
             request->send(200, "image/svg+xml", FPSTR("<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" transform=\"scale (0.6)\" xmlns=\"http://www.w3.org/2000/svg\"><path d\=\"M1664 224v1120q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-537l-768 237v709q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-967q0-31 19-56.5t49-35.5l832-256q12-4 28-4 40 0 68 28t28 68z\"/></svg\>"));
-        }    
+        }
         return;
     }
+    char *coverFileName = *(gPlayProperties.playlist + gPlayProperties.currentTrackNumber); 
+    Serial.println(coverFileName);
 
-    File coverFile = gFSystem.open("/.cover", FILE_READ);
-
-    // skip 1 byte encoding
-    coverFile.seek(1);
+    File coverFile = gFSystem.open(coverFileName, FILE_READ);
+    // seek to start position, skip 1 byte encoding
+    coverFile.seek(gPlayProperties.coverFilePos + 1);
     // mime-type (null terminated)
     char mimeType[255];
     for (uint8_t i = 0u; i < 255; i++) {
         mimeType[i] = coverFile.read();
-        if (uint8_t(mimeType[i]) == 0) 
-            break;  
+        if (uint8_t(mimeType[i]) == 0)
+            break;
     }
-    snprintf(Log_Buffer, Log_BufferLength, "serve cover image (%s)", (char *) mimeType);
+    snprintf(Log_Buffer, Log_BufferLength, "serve cover image (%s): %s", (char *) mimeType, coverFileName);
     Log_Println(Log_Buffer, LOGLEVEL_NOTICE);
-  
+
     // skip image type (1 Byte)
     coverFile.read();
     // skip description (null terminated)
     for (uint8_t i = 0u; i < 255; i++) {
         if (uint8_t(coverFile.read()) == 0)
-            break;  
+            break;
     }
 
-    int imageSize = coverFile.size() - coverFile.position();
+    int imageSize = gPlayProperties.coverFileSize;
+    AsyncWebServerResponse *response = request->beginChunkedResponse(mimeType, [coverFile,imageSize](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
 
-    AsyncWebServerResponse *response = request->beginResponse(
-        mimeType,
-        imageSize,
-        [coverFile](uint8_t *buffer, size_t maxLen, size_t total) -> size_t {
-            File file = coverFile; // local copy of file pointer
-            int bytes = file.read(buffer, maxLen);
-            // close file at the end
-            if (!file.available()) {
-                file.close();
-                    Log_Println("cover image serving finished, close file", LOGLEVEL_DEBUG);
-            }
-            return max(0, bytes); // return 0 even when no bytes were loaded
+        if (maxLen > 1024) {
+            maxLen = 1024;
         }
-    );
+    
+        File file = coverFile; // local copy of file pointer
+        size_t leftToWrite = imageSize - index;
+        if(! leftToWrite) {
+            return 0;//end of transfer
+        }
+        size_t willWrite = (leftToWrite > maxLen)?maxLen:leftToWrite;
+        file.read(buffer, willWrite);
+        index += willWrite;
+        return willWrite;
+    });
     response->addHeader("Cache Control","no-cache, must-revalidate");
     request->send(response);
-} 
-
+}

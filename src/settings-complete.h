@@ -3,7 +3,7 @@
 //######################### INFOS ####################################
 /* This is a config-file for ESPuino complete with port-expander PCA9555.
    PCB: tba
-   Infos: tba
+   Infos: Uses ESP32-WROVER, port-expander PCA9555, amp + headphone-amp integrated
    Caveats: None
    Status: Test in progress...
 */
@@ -45,9 +45,9 @@
 
 // Rotary encoder
 #ifdef USEROTARY_ENABLE
-    #define ROTARYENCODER_CLK           35          // If you want to reverse encoder's direction, just switch GPIOs of CLK with DT (in software or hardware)
-    #define ROTARYENCODER_DT            34
-    #define ROTARYENCODER_BUTTON        105
+    //#define REVERSE_ROTARY                        // To reverse encoder's direction; switching CLK / DT in hardware does the same
+    #define ROTARYENCODER_CLK           35          // rotary encoder's CLK
+    #define ROTARYENCODER_DT            34          // rotary encoder's DT
 #endif
 
 // Amp enable (optional)
@@ -58,6 +58,7 @@
 #define NEXT_BUTTON                     102         // Button 0: GPIO to detect next
 #define PREVIOUS_BUTTON                 103         // Button 1: GPIO to detect previous
 #define PAUSEPLAY_BUTTON                100         // Button 2: GPIO to detect pause/play
+#define ROTARYENCODER_BUTTON            105         // rotary encoder's button
 #define BUTTON_4                        104         // Button 4: unnamed optional button
 #define BUTTON_5                        101         // Button 5: unnamed optional button
 
@@ -80,6 +81,9 @@
 
 // (optional) Power-control
 #define POWER                           13          // GPIO used to drive transistor-circuit, that switches off peripheral devices while ESP32-deepsleep
+#ifdef POWER
+    //#define INVERT_POWER                          // If enabled, use inverted logic for POWER circuit, that means peripherals are turned off by writing HIGH
+#endif
 
 // (optional) Neopixel
 #define LED_PIN                         12          // GPIO for Neopixel-signaling

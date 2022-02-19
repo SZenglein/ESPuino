@@ -20,14 +20,13 @@
 #define RFID_PN5180_STATE_INIT 0u
 
 #define RFID_PN5180_NFC14443_STATE_RESET 1u
-#define RFID_PN5180_NFC14443_STATE_SETUPRF 2u
-#define RFID_PN5180_NFC14443_STATE_READCARD 3u
+#define RFID_PN5180_NFC14443_STATE_READCARD 2u
 #define RFID_PN5180_NFC14443_STATE_ACTIVE 99u
 
-#define RFID_PN5180_NFC15693_STATE_RESET 4u
-#define RFID_PN5180_NFC15693_STATE_SETUPRF 5u
-#define RFID_PN5180_NFC15693_STATE_DISABLEPRIVACYMODE 6u
-#define RFID_PN5180_NFC15693_STATE_GETINVENTORY 7u
+#define RFID_PN5180_NFC15693_STATE_RESET 3u
+#define RFID_PN5180_NFC15693_STATE_SETUPRF 4u
+#define RFID_PN5180_NFC15693_STATE_DISABLEPRIVACYMODE 5u
+#define RFID_PN5180_NFC15693_STATE_GETINVENTORY 6u
 #define RFID_PN5180_NFC15693_STATE_ACTIVE 100u
 
 extern unsigned long Rfid_LastRfidCheckTimestamp;
@@ -139,16 +138,9 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
                 nfc14443.reset();
                 //snprintf(Log_Buffer, Log_BufferLength, "%u", uxTaskGetStackHighWaterMark(NULL));
                 //Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
-            } else if (RFID_PN5180_NFC14443_STATE_SETUPRF == stateMachine) {
-                //Serial.println("nfc14443 setupRF");
-                //nfc14443.reset();//nfc14443.setupRF();
             } else if (RFID_PN5180_NFC14443_STATE_READCARD == stateMachine) {
-                int uidLength = nfc14443.readCardSerial(uid);
-                //Serial.print("uid length: ");
-                //Serial.println(uidLength);
-                if (uidLength >= 4) {
-                    //Serial.print("detected nfc14443 card: ");
-                    //Serial.println();
+             
+                if (nfc14443.readCardSerial(uid) >= 4) {
                     cardReceived = true;
                     stateMachine = RFID_PN5180_NFC14443_STATE_ACTIVE;
                     lastTimeDetected14443 = millis();
