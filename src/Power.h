@@ -11,3 +11,5 @@
 void Power_Init(void);
 void Power_PeripheralOn(void);
 void Power_PeripheralOff(void);
+
+void Power_Off(void);

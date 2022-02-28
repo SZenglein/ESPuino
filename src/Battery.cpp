@@ -30,7 +30,7 @@
                 Log_Println((char *)FPSTR(batteryCriticalMsg), LOGLEVEL_NOTICE);
 
                 // Power down and enter deepsleep
-                Power_PeripheralOff();
+                Power_Off();
                 delay(200);
                 #ifdef PN5180_ENABLE_LPCD
                     Rfid_Exit();

@@ -83,6 +83,7 @@
 
     // (optional) Power-control
     #define POWER                           17          // GPIO used to drive transistor-circuit, that switches off peripheral devices while ESP32-deepsleep
+    #define POWER_MAIN                      99          // GPIO used to switch main power supply, including ESP32
     #ifdef POWER
         //#define INVERT_POWER                          // If enabled, use inverted logic for POWER circuit, that means peripherals are turned off by writing HIGH
     #endif

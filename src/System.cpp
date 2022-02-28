@@ -231,7 +231,7 @@ void System_DeepSleepManager(void) {
 
         Serial.flush();
         // switch off power
-        Power_PeripheralOff();
+        Power_Off();
         delay(200);
         #if defined (RFID_READER_TYPE_MFRC522_SPI) || defined (RFID_READER_TYPE_MFRC522_I2C) || defined(RFID_READER_TYPE_PN5180)
             Rfid_Exit();
