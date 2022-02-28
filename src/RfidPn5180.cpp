@@ -150,7 +150,7 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
                     // Reset to dummy-value if no card is there
                     // Necessary to differentiate between "card is still applied" and "card is re-applied again after removal"
                     // lastTimeDetected14443 is used to prevent "new card detection with old card" with single events where no card was detected
-                    if (!lastTimeDetected14443 || (millis() - lastTimeDetected14443 >= 800)) {
+                    if (!lastTimeDetected14443 || (millis() - lastTimeDetected14443 >= 1500)) {
                         lastTimeDetected14443 = 0;
                         #ifdef PAUSE_WHEN_RFID_REMOVED
                             cardAppliedCurrentRun = false;
@@ -189,7 +189,7 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
                     #endif
                 } else {
                     // lastTimeDetected15693 is used to prevent "new card detection with old card" with single events where no card was detected
-                    if (!lastTimeDetected15693 || (millis() - lastTimeDetected15693 >= 400)) {
+                    if (!lastTimeDetected15693 || (millis() - lastTimeDetected15693 >= 1500)) {
                         lastTimeDetected15693 = 0;
                         #ifdef PAUSE_WHEN_RFID_REMOVED
                             cardAppliedCurrentRun = false;
