@@ -30,15 +30,15 @@
 
     // RFID (via SPI)
     #define RST_PIN                         99          // Not necessary but has to be set anyway; so let's use a dummy-number
-    #define RFID_CS                         21          // GPIO for chip select (RFID)
+    #define RFID_CS                         13          // GPIO for chip select (RFID)
     #define RFID_MOSI                       23          // GPIO for master out slave in (RFID)
     #define RFID_MISO                       19          // GPIO for master in slave out (RFID)
     #define RFID_SCK                        18          // GPIO for clock-signal (RFID)
 
     #ifdef RFID_READER_TYPE_PN5180
-        #define RFID_BUSY                   16          // PN5180 BUSY PIN
-        #define RFID_RST                    22          // PN5180 RESET PIN
-        #define RFID_IRQ                    39          // PN5180 IRQ PIN (only needed for low power card detection)
+        #define RFID_BUSY                   5          // PN5180 BUSY PIN
+        #define RFID_RST                    4          // PN5180 RESET PIN
+        #define RFID_IRQ                    33          // PN5180 IRQ PIN (only needed for low power card detection)
     #endif
     // I2S (DAC)
     #define I2S_DOUT                        25          // Digital out (I2S)
@@ -49,7 +49,7 @@
     #ifdef USEROTARY_ENABLE
         //#define REVERSE_ROTARY                        // To reverse encoder's direction; switching CLK / DT in hardware does the same
         #define ROTARYENCODER_CLK           34          // rotary encoder's CLK
-        #define ROTARYENCODER_DT            35          // Info: Lolin D32 / Lolin D32 pro 35 are using 35 for battery-voltage-monitoring!
+        #define ROTARYENCODER_DT            39          // Info: Lolin D32 / Lolin D32 pro 35 are using 35 for battery-voltage-monitoring!
     #endif
 
     // Amp enable (optional)
@@ -57,10 +57,11 @@
     //#define GPIO_HP_EN                      113         // To enable amp for headphones (GPIO or port-channel)
 
     // Control-buttons (set to 99 to DISABLE; 0->39 for GPIO; 100->115 for port-expander)
-    #define NEXT_BUTTON                      4          // Button 0: GPIO to detect next
-    #define PREVIOUS_BUTTON                  2          // Button 1: GPIO to detect previous (Important: as of 19.11.2020 changed from 33 to 2; make sure to change in SD-MMC-mode)
-    #define PAUSEPLAY_BUTTON                 0          // Button 2: GPIO to detect pause/play
-    #define ROTARYENCODER_BUTTON            32          // (set to 99 to disable; 0->39 for GPIO; 100->115 for port-expander)
+
+    #define NEXT_BUTTON                     35          // Button 0: GPIO to detect next
+    #define PREVIOUS_BUTTON                  3          // Button 1: GPIO to detect previous (Important: as of 19.11.2020 changed from 33 to 2; make sure to change in SD-MMC-mode)
+    #define PAUSEPLAY_BUTTON                99          // Button 2: GPIO to detect pause/play
+    #define ROTARYENCODER_BUTTON            36          // (set to 99 to disable; 0->39 for GPIO; 100->115 for port-expander)
     #define BUTTON_4                        99          // Button 4: unnamed optional button
     #define BUTTON_5                        99          // Button 5: unnamed optional button
 
@@ -72,8 +73,8 @@
 
     // I2C-configuration (necessary for RC522 [only via i2c - not spi!] or port-expander)
     #ifdef I2C_2_ENABLE
-        #define ext_IIC_CLK                 4           // i2c-SCL (clock)
-        #define ext_IIC_DATA                2           // i2c-SDA (data)
+        #define ext_IIC_CLK                22           // i2c-SCL (clock)
+        #define ext_IIC_DATA               21           // i2c-SDA (data)
     #endif
 
     // Wake-up button => this also is the interrupt-pin if port-expander is enabled!
@@ -82,9 +83,9 @@
     #define WAKEUP_BUTTON                   ROTARYENCODER_BUTTON // Defines the button that is used to wake up ESPuino from deepsleep.
 
     // (optional) Power-control
-    #define POWER                           17          // GPIO used to drive transistor-circuit, that switches off peripheral devices while ESP32-deepsleep
+    #define POWER                           0          // GPIO used to drive transistor-circuit, that switches off peripheral devices while ESP32-deepsleep
     #ifdef POWER
-        //#define INVERT_POWER                          // If enabled, use inverted logic for POWER circuit, that means peripherals are turned off by writing HIGH
+        #define INVERT_POWER                          // If enabled, use inverted logic for POWER circuit, that means peripherals are turned off by writing HIGH
     #endif
 
     // (optional) Neopixel
@@ -93,12 +94,12 @@
     // (optinal) Headphone-detection
     #ifdef HEADPHONE_ADJUST_ENABLE
         //#define DETECT_HP_ON_HIGH                       // Per default headphones are supposed to be connected if HT_DETECT is LOW. DETECT_HP_ON_HIGH will change this behaviour to HIGH.
-        #define HP_DETECT                   22          // GPIO that detects, if there's a plug in the headphone jack or not
+        #define HP_DETECT                   32          // GPIO that detects, if there's a plug in the headphone jack or not
     #endif
 
     // (optional) Monitoring of battery-voltage via ADC
     #ifdef MEASURE_BATTERY_VOLTAGE
-        #define VOLTAGE_READ_PIN            33          // GPIO used to monitor battery-voltage. Change to 35 if you're using Lolin D32 or Lolin D32 pro as it's hard-wired there!
+        #define VOLTAGE_READ_PIN            99                    // GPIO used to monitor battery-voltage. Change to 35 if you're using Lolin D32 or Lolin D32 pro as it's hard-wired there!
         constexpr float referenceVoltage = 3.35;                  // Voltage between 3.3V and GND-pin at the develboard in battery-mode (disconnect USB!)
         constexpr float offsetVoltage = 0.1;                      // If voltage measured by ESP isn't 100% accurate, you can add an correction-value here
     #endif
