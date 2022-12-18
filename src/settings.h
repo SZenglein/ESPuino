@@ -204,14 +204,14 @@
 
     #ifdef MEASURE_BATTERY_MAX17055
         constexpr float s_batteryLow = 15.0;            // low percentage
-        constexpr float s_batteryCritical = 5.0;        // critical percentage
+        constexpr float s_batteryCritical = 0.99;       // critical percentage
 
         constexpr uint16_t s_batteryCapacity = 6000;    // design cap of battery (mAh)
         constexpr uint16_t s_emptyVoltage = 300;        // empty voltage in 10mV
         constexpr uint16_t s_recoveryVoltage = 360;     // recovery voltage in 10mV
         constexpr uint8_t  s_batteryChemistry = 0x60;   // 0 = Li-Ion, 0x20 = NCR, 0x60 = LiFePO4
         constexpr float s_resistSensor = 0.01;          // current sense resistor, currently non-default values might lead to problems
-        constexpr bool s_vCharge = false;                   // true if charge voltage is greater than 4.275V
+        constexpr bool s_vCharge = false;               // true if charge voltage is greater than 4.275V
     #endif
 
     // enable I2C if necessary
