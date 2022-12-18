@@ -52,6 +52,7 @@
     //#define PAUSE_WHEN_RFID_REMOVED       // Playback starts when card is applied and pauses automatically, when card is removed (https://forum.espuino.de/t/neues-feature-pausieren-wenn-rfid-karte-entfernt-wurde/541)
     #define SAVE_PLAYPOS_BEFORE_SHUTDOWN  // When playback is active and mode audiobook was selected, last play-position is saved automatically when shutdown is initiated
     #define SAVE_PLAYPOS_WHEN_RFID_CHANGE // When playback is active and mode audiobook was selected, last play-position is saved automatically for old playlist when new RFID-tag is applied
+    //#define DONT_ACCEPT_SAME_RFID_TWICE   // RFID-reader doesn't accept the same RFID-tag twice in a row (unless it's a modification-card or RFID-tag is unknown in NVS). Flag will be ignored silently if PAUSE_WHEN_RFID_REMOVED is active. (https://forum.espuino.de/t/neues-feature-dont-accept-same-rfid-twice/1247)
 
 
     //################## select SD card mode #############################
@@ -121,8 +122,8 @@
     #define BUTTON_1_LONG     CMD_SEEK_FORWARDS
     #define BUTTON_2_LONG     CMD_PLAYPAUSE
     #define BUTTON_3_LONG     CMD_SLEEPMODE
-    #define BUTTON_4_LONG     CMD_NOTHING
-    #define BUTTON_5_LONG     CMD_NOTHING
+    #define BUTTON_4_LONG     CMD_VOLUMEUP
+    #define BUTTON_5_LONG     CMD_VOLUMEDOWN
 
     #define BUTTON_MULTI_01   CMD_MEASUREBATTERY //CMD_TOGGLE_WIFI_STATUS (disabled now to prevent children from unwanted WiFi-disable)
     #define BUTTON_MULTI_02   CMD_NOTHING // CMD_ENABLE_FTP_SERVER
@@ -155,7 +156,7 @@
 
     // Buttons (better leave unchanged if in doubts :-))
     constexpr uint8_t buttonDebounceInterval = 50;                // Interval in ms to software-debounce buttons
-    constexpr uint16_t intervalToLongPress = 700;                 // Interval in ms to distinguish between short and long press of previous/next-button
+    constexpr uint16_t intervalToLongPress = 700;                 // Interval in ms to distinguish between short and long press of buttons
 
     // RFID-RC522
     #define RFID_SCAN_INTERVAL 100                      // Interval-time in ms (how often is RFID read?)
@@ -171,7 +172,10 @@
 
     // ESPuino will create a WiFi if joing existing WiFi was not possible. Name can be configured here.
     constexpr const char accessPointNetworkSSID[] PROGMEM = "ESPuino";     // Access-point's SSID
-    constexpr const char nameBluetoothDevice[] PROGMEM = "ESPuino";        // Name of your ESPuino as Bluetooth-device
+    
+	// Bluetooth
+	constexpr const char nameBluetoothSinkDevice[] PROGMEM = "ESPuino";        // Name of your ESPuino as Bluetooth-device
+    constexpr const char nameBluetoothSourceDevice[] PROGMEM = "My POGS Wireless Headphone"; // Name of Bluetooth-device to connect to (BT-Headset name) (https://forum.espuino.de/t/neues-feature-bluetooth-kopfhoerer/1293/)
 
     // Where to store the backup-file for NVS-records
     constexpr const char backupFile[] PROGMEM = "/backup.txt"; // File is written every time a (new) RFID-assignment via GUI is done
@@ -234,6 +238,7 @@
         constexpr const char topicRfidState[] PROGMEM = "State/ESPuino/Rfid";
         constexpr const char topicTrackState[] PROGMEM = "State/ESPuino/Track";
         constexpr const char topicTrackControlCmnd[] PROGMEM = "Cmnd/ESPuino/TrackControl";
+        constexpr const char topicCoverChangedState[] PROGMEM = "State/ESPuino/CoverChanged";
         constexpr const char topicLoudnessCmnd[] PROGMEM = "Cmnd/ESPuino/Loudness";
         constexpr const char topicLoudnessState[] PROGMEM = "State/ESPuino/Loudness";
         constexpr const char topicSleepTimerCmnd[] PROGMEM = "Cmnd/ESPuino/SleepTimer";

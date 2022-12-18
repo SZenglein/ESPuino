@@ -1,9 +1,9 @@
 #pragma once
 #include "settings.h"
 #ifdef SD_MMC_1BIT_MODE
-#include "SD_MMC.h"
+	#include "SD_MMC.h"
 #else
-#include "SD.h"
+	#include "SD.h"
 #endif
 
 extern fs::FS gFSystem;
@@ -15,3 +15,4 @@ uint64_t SdCard_GetSize();
 uint64_t SdCard_GetFreeSize();
 void SdCard_PrintInfo();
 char **SdCard_ReturnPlaylist(const char *fileName, const uint32_t _playMode);
+char *SdCard_pickRandomSubdirectory(char *_directory);
