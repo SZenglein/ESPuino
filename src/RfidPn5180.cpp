@@ -10,6 +10,7 @@
 #include "Port.h"
 #include <esp_task_wdt.h>
 #include "AudioPlayer.h"
+#include "HallEffectSensor.h"
 
 #ifdef RFID_READER_TYPE_PN5180
 	#include <PN5180.h>
@@ -68,7 +69,7 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
 		xTaskCreatePinnedToCore(
 			Rfid_Task,              /* Function to implement the task */
 			"rfid",                 /* Name of the task */
-			1536,                   /* Stack size in words */
+			2048,                   /* Stack size in words */
 			NULL,                   /* Task input parameter */
 			2 | portPRIVILEGE_BIT,  /* Priority of the task */
 			&rfidTaskHandle,        /* Task handle. */
@@ -93,9 +94,10 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
 		uint8_t stateMachine = RFID_PN5180_STATE_INIT;
 		static byte cardId[cardIdSize], lastCardId[cardIdSize];
 		uint8_t uid[10];
+		bool showDisablePrivacyNotification = true;
 
 		// wait until queues are created
-		while(gRfidCardQueue == NULL){
+		while (gRfidCardQueue == NULL) {
 			Log_Println((char *) FPSTR(waitingForTaskQueues), LOGLEVEL_DEBUG);
 			vTaskDelay(50);
 		}
@@ -173,7 +175,10 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
 				uint8_t password[] = {0x01, 0x02, 0x03, 0x04};
 				ISO15693ErrorCode myrc = nfc15693.disablePrivacyMode(password);
 				if (ISO15693_EC_OK == myrc) {
-					Log_Println((char *) F("disabling privacy-mode successful"), LOGLEVEL_NOTICE);
+					if (showDisablePrivacyNotification) {
+						showDisablePrivacyNotification = false;
+						Log_Println((char *) F("disabling privacy-mode successful"), LOGLEVEL_NOTICE);
+					}
 				}
 			} else if (RFID_PN5180_NFC15693_STATE_GETINVENTORY == stateMachine) {
 				// try to read ISO15693 inventory
@@ -226,6 +231,10 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
 				}
 
 				memcpy(lastCardId, cardId, cardIdSize);
+				showDisablePrivacyNotification = true;
+                #ifdef HALLEFFECT_SENSOR_ENABLE
+                    cardId[cardIdSize-1]   = cardId[cardIdSize-1] + gHallEffectSensor.waitForState(HallEffectWaitMS);  
+                #endif
 
 				#ifdef PAUSE_WHEN_RFID_REMOVED
 					if (memcmp((const void *)lastValidcardId, (const void *)cardId, sizeof(cardId)) == 0) {
@@ -249,7 +258,11 @@ extern unsigned long Rfid_LastRfidCheckTimestamp;
 				}
 
 				#ifdef PAUSE_WHEN_RFID_REMOVED
-					if (!sameCardReapplied) {       // Don't allow to send card to queue if it's the same card again...
+					#ifdef ACCEPT_SAME_RFID_AFTER_TRACK_END
+						if (!sameCardReapplied || gPlayProperties.trackFinished || gPlayProperties.playlistFinished) {       // Don't allow to send card to queue if it's the same card again if track or playlist is unfnished 
+					#else	
+						if (!sameCardReapplied){		// Don't allow to send card to queue if it's the same card again... 
+					#endif
 						xQueueSend(gRfidCardQueue, cardIdString.c_str(), 0);
 					} else {
 						// If pause-button was pressed while card was not applied, playback could be active. If so: don't pause when card is reapplied again as the desired functionality would be reversed in this case.

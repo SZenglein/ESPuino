@@ -12,6 +12,7 @@ typedef struct { // Bit field
 	double currentRelPos;                       // Current relative playPosition (in %)
 	bool sleepAfterCurrentTrack:        1;      // If uC should go to sleep after current track
 	bool sleepAfterPlaylist:            1;      // If uC should go to sleep after whole playlist
+	bool sleepAfter5Tracks:             1;      // If uC should go to sleep after 5 tracks
 	bool saveLastPlayPosition:          1;      // If playposition/current track should be saved (for AUDIOBOOK)
 	char playRfidTag[13];                       // ID of RFID-tag that started playlist
 	bool pausePlay:                     1;      // If pause is active
@@ -37,6 +38,7 @@ uint8_t AudioPlayer_GetRepeatMode(void);
 void AudioPlayer_VolumeToQueueSender(const int32_t _newVolume, bool reAdjustRotary);
 void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _lastPlayPos, const uint32_t _playMode, const uint16_t _trackLastPlayed);
 void AudioPlayer_TrackControlToQueueSender(const uint8_t trackCommand);
+void AudioPlayer_PauseOnMinVolume(const uint8_t oldVolume, const uint8_t newVolume);
 
 uint8_t AudioPlayer_GetCurrentVolume(void);
 void AudioPlayer_SetCurrentVolume(uint8_t value);

@@ -71,6 +71,8 @@
 #define BUTTON_4                        99          // Button 4: unnamed optional button
 #define BUTTON_5                        99          // Button 5: unnamed optional button
 
+//#define BUTTONS_LED                   114         // Powers the LEDs of the buttons. Make sure the current consumed by the LEDs can be handled by the used GPIO
+
 // Channels of port-expander can be read cyclic or interrupt-driven. It's strongly recommended to use the interrupt-way!
 // Infos: https://forum.espuino.de/t/einsatz-des-port-expanders-pca9555/306
 #ifdef PORT_EXPANDER_ENABLE
@@ -114,6 +116,11 @@
 #ifdef MEASURE_BATTERY_VOLTAGE
     constexpr uint16_t rdiv1 = 129;                              // Rdiv1 of voltage-divider (kOhms) (measure exact value with multimeter!)
     constexpr uint16_t rdiv2 = 129;                              // Rdiv2 of voltage-divider (kOhms) (measure exact value with multimeter!) => used to measure voltage via ADC!
+#endif
+
+// (optional) hallsensor. Make sure the GPIO defined doesn't overlap with existing configuration. Please note: only user-support is provided for this feature.
+#ifdef HALLEFFECT_SENSOR_ENABLE
+    #define HallEffectSensor_PIN        34  	// GPIO that is used for hallsensor (ADC); user-support: https://forum.espuino.de/t/magnetische-hockey-tags/1449/35
 #endif
 
 // (Optional) remote control via infrared

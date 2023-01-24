@@ -25,6 +25,8 @@
 #include "Wlan.h"
 #include "revision.h"
 #include "Power.h"
+#include "HallEffectSensor.h"
+
 
 // avoid PSRAM check while wake-up from deepsleep
 bool testSPIRAM(void) {
@@ -125,6 +127,10 @@ void setup() {
 		Log_Println((char *) FPSTR(rfidScannerReady), LOGLEVEL_DEBUG);
 	#endif
 
+    #ifdef HALLEFFECT_SENSOR_ENABLE
+        gHallEffectSensor.init();
+    #endif
+
 	// Needs i2c first if port-expander is used
 	Port_Init();
 
@@ -214,6 +220,9 @@ void setup() {
 		Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
 	}
 	System_ShowUpgradeWarning();
+#ifdef CONTROLS_LOCKED_BY_DEFAULT
+	System_SetLockControls(true);
+#endif
 }
 
 void loop() {
@@ -248,4 +257,9 @@ void loop() {
 
 	IrReceiver_Cyclic();
 	vTaskDelay(portTICK_RATE_MS * 5u);
+
+    #ifdef HALLEFFECT_SENSOR_ENABLE
+       gHallEffectSensor.cyclic();
+    #endif
+    
 }

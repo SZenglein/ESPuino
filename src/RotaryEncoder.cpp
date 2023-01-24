@@ -41,16 +41,18 @@ void RotaryEncoder_Readjust(void) {
 // Handles volume directed by rotary encoder
 void RotaryEncoder_Cyclic(void) {
 	#ifdef USEROTARY_ENABLE
+#ifdef INCLUDE_ROTARY_IN_CONTROLS_LOCK
 		if (System_AreControlsLocked()) {
 			encoder.clearCount();
 			encoder.setCount(AudioPlayer_GetCurrentVolume() * 2);
 			return;
 		}
+#endif
 
 		currentEncoderValue = encoder.getCount();
 		// Only if initial run or value has changed. And only after "full step" of rotary encoder
 		if (((lastEncoderValue != currentEncoderValue) || lastVolume == -1) && (currentEncoderValue % 2 == 0)) {
-			System_UpdateActivityTimer(); // Set inactive back if rotary encoder was used
+			System_UpdateActivityTimer(); // Set inactivity back if rotary encoder was used
 			if ((AudioPlayer_GetMaxVolume() * 2) < currentEncoderValue) {
 				encoder.clearCount();
 				encoder.setCount(AudioPlayer_GetMaxVolume() * 2);
@@ -65,6 +67,7 @@ void RotaryEncoder_Cyclic(void) {
 			lastEncoderValue = currentEncoderValue;
 			AudioPlayer_SetCurrentVolume(lastEncoderValue / 2u);
 			if (AudioPlayer_GetCurrentVolume() != lastVolume) {
+				AudioPlayer_PauseOnMinVolume(lastVolume, AudioPlayer_GetCurrentVolume());
 				lastVolume = AudioPlayer_GetCurrentVolume();
 				AudioPlayer_VolumeToQueueSender(AudioPlayer_GetCurrentVolume(), false);
 			}
