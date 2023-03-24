@@ -32,10 +32,6 @@
 				// Power down and enter deepsleep
 				Power_PeripheralOff();
 				delay(200);
-				#ifdef PN5180_ENABLE_LPCD
-					Rfid_Exit();
-				#endif
-				delay(1000);
 				esp_deep_sleep_start();
 			}
 		#endif
