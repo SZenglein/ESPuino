@@ -55,8 +55,11 @@
 		}
 
 		Log_Println("MAX17055 init done. Battery configured with the following settings:", LOGLEVEL_DEBUG);
-		float val = sensor.getCapacity();
+		float val = sensor.getDesignCapacity();
 		snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mAh", (char *)"Design Capacity", val);
+		Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
+		val = sensor.getReportedCapacity();
+		snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f mAh", (char *)"Reported Capacity", val);
 		Log_Println(Log_Buffer, LOGLEVEL_DEBUG);
 		val = sensor.getEmptyVoltage() / 100.0;
 		snprintf(Log_Buffer, Log_BufferLength, "%s: %.2f V", (char *)"Empty Voltage", val);
