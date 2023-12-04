@@ -63,6 +63,7 @@ static void explorerHandleDeleteRequest(AsyncWebServerRequest *request);
 static void explorerHandleCreateRequest(AsyncWebServerRequest *request);
 static void explorerHandleRenameRequest(AsyncWebServerRequest *request);
 static void explorerHandleAudioRequest(AsyncWebServerRequest *request);
+static void handleTrackProgressRequest(AsyncWebServerRequest *request);
 static void handleGetSavedSSIDs(AsyncWebServerRequest *request);
 static void handlePostSavedSSIDs(AsyncWebServerRequest *request, JsonVariant &json);
 static void handleDeleteSavedSSIDs(AsyncWebServerRequest *request);
@@ -282,11 +283,16 @@ static void handleWiFiScanRequest(AsyncWebServerRequest *request) {
 	json = String();
 }
 
+unsigned long lastCleanupClientsTimestamp;
+
 void Web_Cyclic(void) {
 	webserverStart();
-	ws.cleanupClients();
+	if ((millis() - lastCleanupClientsTimestamp) > 1000u) {
+		// cleanup closed/deserted websocket clients once per second
+		lastCleanupClientsTimestamp = millis();
+		ws.cleanupClients();
+	}
 }
-
 // handle not found
 void notFound(AsyncWebServerRequest *request) {
 	Log_Printf(LOGLEVEL_ERROR, "%s not found, redirect to startpage", request->url().c_str());
@@ -476,6 +482,8 @@ void webserverStart(void) {
 		wServer.on("/explorer", HTTP_PATCH, explorerHandleRenameRequest);
 
 		wServer.on("/exploreraudio", HTTP_POST, explorerHandleAudioRequest);
+
+		wServer.on("/trackprogress", HTTP_GET, handleTrackProgressRequest);
 
 		wServer.on("/savedSSIDs", HTTP_GET, handleGetSavedSSIDs);
 		wServer.addHandler(new AsyncCallbackJsonWebHandler("/savedSSIDs", handlePostSavedSSIDs));
@@ -966,6 +974,18 @@ void Web_SendWebsocketData(uint32_t client, uint8_t code) {
 		// we do not have any webclient connected
 		return;
 	}
+	// check if we can send message to the client(s)
+	if (client == 0) {
+		if (!ws.availableForWriteAll()) {
+			Log_Println("Websocket: Cannot send data (Too many messages queued)!", LOGLEVEL_ERROR);
+			return;
+		}
+	} else {
+		if (!ws.availableForWrite(client)) {
+			Log_Printf(LOGLEVEL_ERROR, "Websocket: Cannot send data to client %d (Too many messages queued)!", client);
+			return;
+		}
+	}
 	char *jBuf = (char *) x_calloc(1024, sizeof(char));
 	StaticJsonDocument<1024> doc;
 	JsonObject object = doc.to<JsonObject>();
@@ -1304,12 +1324,9 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 	String MyfileName = root.getNextFileName(&isDir);
 	while (MyfileName != "") {
 		// ignore hidden folders, e.g. MacOS spotlight files
-		if (!startsWith(MyfileName.c_str(), (char *) "/.")) {
+		if (!MyfileName.startsWith("/.")) {
 			JsonObject entry = obj.createNestedObject();
-			convertAsciiToUtf8(MyfileName.c_str(), filePath);
-			std::string path = filePath;
-			std::string fileName = path.substr(path.find_last_of("/") + 1);
-			entry["name"] = fileName;
+			entry["name"] = MyfileName.substring(MyfileName.lastIndexOf('/') + 1);
 			if (isDir) {
 				entry["dir"].set(true);
 			}
@@ -1500,6 +1517,16 @@ void explorerHandleAudioRequest(AsyncWebServerRequest *request) {
 	}
 
 	request->send(200);
+}
+
+// Handles track progress requests
+void handleTrackProgressRequest(AsyncWebServerRequest *request) {
+	String json = "{\"trackProgress\":{";
+	json += "\"posPercent\":" + String(gPlayProperties.currentRelPos);
+	json += ",\"time\":" + String(AudioPlayer_GetCurrentTime());
+	json += ",\"duration\":" + String(AudioPlayer_GetFileDuration());
+	json += "}}";
+	request->send(200, "application/json", json);
 }
 
 void handleGetSavedSSIDs(AsyncWebServerRequest *request) {
