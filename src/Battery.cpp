@@ -24,10 +24,10 @@ void Battery_Init(void) {
 	}
 
 	Battery_InitInner();
+	Battery_LogStatus();
 
 	#ifdef SHUTDOWN_ON_BAT_CRITICAL
 	if (Battery_IsCritical()) {
-		Battery_LogStatus();
 
 		Log_Println(batteryCriticalMsg, LOGLEVEL_NOTICE);
 		// Power down and enter deepsleep
