@@ -16,6 +16,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include <esp_random.h>
+
 constexpr const char prefsRfidNamespace[] = "rfidTags"; // Namespace used to save IDs of rfid-tags
 constexpr const char prefsSettingsNamespace[] = "settings"; // Namespace used for generic settings
 
@@ -36,10 +38,19 @@ volatile uint8_t System_OperationMode;
 void System_SleepHandler(void);
 void System_DeepSleepManager(void);
 
+// Init only NVS required for LPCD
+void System_Init_LPCD(void) {
+#ifdef PN5180_ENABLE_LPCD
+	gPrefsRfid.begin(prefsRfidNamespace);
+#endif
+}
+
 void System_Init(void) {
 	srand(esp_random());
 
+#ifndef PN5180_ENABLE_LPCD
 	gPrefsRfid.begin(prefsRfidNamespace);
+#endif
 	gPrefsSettings.begin(prefsSettingsNamespace);
 
 	// Get maximum inactivity-time from NVS
@@ -74,14 +85,14 @@ bool System_SetSleepTimer(uint8_t minutes) {
 	if (System_SleepTimerStartTimestamp && (System_SleepTimer == minutes)) {
 		System_SleepTimerStartTimestamp = 0u;
 		System_SleepTimer = 0u;
-		Led_ResetToInitialBrightness();
+		Led_SetNightmode(false);
 		Log_Println(modificatorSleepd, LOGLEVEL_NOTICE);
 	} else {
 		System_SleepTimerStartTimestamp = millis();
 		System_SleepTimer = minutes;
 		sleepTimerEnabled = true;
 
-		Led_ResetToNightBrightness();
+		Led_SetNightmode(true);
 		if (minutes == 15) {
 			Log_Println(modificatorSleepTimer15, LOGLEVEL_NOTICE);
 		} else if (minutes == 30) {
@@ -94,8 +105,7 @@ bool System_SetSleepTimer(uint8_t minutes) {
 	}
 
 #ifdef MQTT_ENABLE
-	publishMqtt(topicSleepTimerState, System_GetSleepTimer(), false);
-	publishMqtt(topicLedBrightnessState, Led_GetBrightness(), false);
+	publishMqtt(topicSleepTimerState, static_cast<uint32_t>(System_GetSleepTimer()), false);
 #endif
 
 	return sleepTimerEnabled;
@@ -103,7 +113,7 @@ bool System_SetSleepTimer(uint8_t minutes) {
 
 void System_DisableSleepTimer(void) {
 	System_SleepTimerStartTimestamp = 0u;
-	Led_ResetToInitialBrightness();
+	Led_SetNightmode(false);
 }
 
 bool System_IsSleepTimerEnabled(void) {
@@ -147,6 +157,7 @@ void System_SetOperationMode(uint8_t opMode) {
 	uint8_t currentOperationMode = gPrefsSettings.getUChar("operationMode", OPMODE_NORMAL);
 	if (currentOperationMode != opMode) {
 		if (gPrefsSettings.putUChar("operationMode", opMode)) {
+			Log_Println(restartAfterOperationModeChange, LOGLEVEL_INFO);
 			ESP.restart();
 		}
 	}
@@ -192,9 +203,9 @@ void System_PreparePowerDown(void) {
 	Mqtt_Exit();
 	Led_Exit();
 
-#ifdef USE_LAST_VOLUME_AFTER_REBOOT
-	gPrefsSettings.putUInt("previousVolume", AudioPlayer_GetCurrentVolume());
-#endif
+	if (gPrefsSettings.getBool("recoverVolBoot", false)) {
+		gPrefsSettings.putUInt("previousVolume", AudioPlayer_GetCurrentVolume());
+	}
 	SdCard_Exit();
 
 	Serial.flush();
@@ -263,11 +274,13 @@ void System_ShowWakeUpReason() {
 	}
 }
 
-#ifdef ENABLE_ESPUINO_DEBUG
 void System_esp_print_tasks(void) {
+#ifdef CONFIG_FREERTOS_USE_TRACE_FACILITY
 	char *pbuffer = (char *) calloc(2048, 1);
 	vTaskGetRunTimeStats(pbuffer);
 	Serial.printf("=====\n%s\n=====", pbuffer);
 	free(pbuffer);
-}
+#else
+	Serial.println("Enable CONFIG_FREERTOS_USE_TRACE_FACILITY to use vTaskGetRunTimeStats()!");
 #endif
+}

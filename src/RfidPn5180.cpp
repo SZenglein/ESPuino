@@ -73,6 +73,7 @@ void Rfid_Init(void) {
 		i2cBusTwo.begin(ext_IIC_DATA, ext_IIC_CLK);
 		delay(50);
 		Port_Init();
+		Port_Cyclic();
 		uint8_t irqState = Port_Read(RFID_IRQ);
 		if (irqState == LOW) {
 			Log_Println("Wakeup caused by low power card-detection on port-expander", LOGLEVEL_NOTICE);
@@ -93,7 +94,7 @@ void Rfid_Init(void) {
 	xTaskCreatePinnedToCore(
 		Rfid_Task, /* Function to implement the task */
 		"rfid", /* Name of the task */
-		2048, /* Stack size in words */
+		2176, /* Stack size in words */
 		NULL, /* Task input parameter */
 		2 | portPRIVILEGE_BIT, /* Priority of the task */
 		&rfidTaskHandle, /* Task handle. */
@@ -110,11 +111,9 @@ void Rfid_Task(void *parameter) {
 	static PN5180ISO15693 nfc15693(RFID_CS, RFID_BUSY, RFID_RST);
 	uint32_t lastTimeDetected14443 = 0;
 	uint32_t lastTimeDetected15693 = 0;
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 	byte lastValidcardId[cardIdSize];
 	bool cardAppliedCurrentRun = false;
 	bool cardAppliedLastRun = false;
-	#endif
 	uint8_t stateMachine = RFID_PN5180_STATE_INIT;
 	static byte cardId[cardIdSize], lastCardId[cardIdSize];
 	uint8_t uid[10];
@@ -139,9 +138,7 @@ void Rfid_Task(void *parameter) {
 	#endif
 		String cardIdString;
 		bool cardReceived = false;
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 		bool sameCardReapplied = false;
-	#endif
 
 		if (RFID_PN5180_STATE_INIT == stateMachine) {
 			nfc14443.begin();
@@ -165,18 +162,14 @@ void Rfid_Task(void *parameter) {
 				cardReceived = true;
 				stateMachine = RFID_PN5180_NFC14443_STATE_ACTIVE;
 				lastTimeDetected14443 = millis();
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 				cardAppliedCurrentRun = true;
-	#endif
 			} else {
 				// Reset to dummy-value if no card is there
 				// Necessary to differentiate between "card is still applied" and "card is re-applied again after removal"
 				// lastTimeDetected14443 is used to prevent "new card detection with old card" with single events where no card was detected
 				if (!lastTimeDetected14443 || (millis() - lastTimeDetected14443 >= 1000)) {
 					lastTimeDetected14443 = 0;
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 					cardAppliedCurrentRun = false;
-	#endif
 					for (uint8_t i = 0; i < cardIdSize; i++) {
 						lastCardId[i] = 0;
 					}
@@ -197,7 +190,7 @@ void Rfid_Task(void *parameter) {
 			//
 			// default factory password for ICODE-SLIX2 is {0x0F, 0x0F, 0x0F, 0x0F}
 			//
-			uint8_t password[] = {0x0F, 0x0F, 0x0F, 0x0F};
+			const uint8_t password[] = {0x0F, 0x0F, 0x0F, 0x0F};
 			ISO15693ErrorCode myrc = nfc15693.disablePrivacyMode(password);
 			if (ISO15693_EC_OK == myrc) {
 				if (showDisablePrivacyNotification) {
@@ -215,16 +208,12 @@ void Rfid_Task(void *parameter) {
 				cardReceived = true;
 				stateMachine = RFID_PN5180_NFC15693_STATE_ACTIVE;
 				lastTimeDetected15693 = millis();
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 				cardAppliedCurrentRun = true;
-	#endif
 			} else {
 				// lastTimeDetected15693 is used to prevent "new card detection with old card" with single events where no card was detected
 				if (!lastTimeDetected15693 || (millis() - lastTimeDetected15693 >= 400)) {
 					lastTimeDetected15693 = 0;
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 					cardAppliedCurrentRun = false;
-	#endif
 					for (uint8_t i = 0; i < cardIdSize; i++) {
 						lastCardId[i] = 0;
 					}
@@ -234,13 +223,13 @@ void Rfid_Task(void *parameter) {
 			}
 		}
 
-	#ifdef PAUSE_WHEN_RFID_REMOVED
-		if (!cardAppliedCurrentRun && cardAppliedLastRun && !gPlayProperties.pausePlay && System_GetOperationMode() != OPMODE_BLUETOOTH_SINK) { // Card removed => pause
-			AudioPlayer_TrackControlToQueueSender(PAUSEPLAY);
-			Log_Println(rfidTagRemoved, LOGLEVEL_NOTICE);
+		if (gPlayProperties.pauseIfRfidRemoved) {
+			if (!cardAppliedCurrentRun && cardAppliedLastRun && !gPlayProperties.pausePlay && System_GetOperationMode() != OPMODE_BLUETOOTH_SINK) { // Card removed => pause
+				AudioPlayer_TrackControlToQueueSender(PAUSEPLAY);
+				Log_Println(rfidTagRemoved, LOGLEVEL_NOTICE);
+			}
+			cardAppliedLastRun = cardAppliedCurrentRun;
 		}
-		cardAppliedLastRun = cardAppliedCurrentRun;
-	#endif
 
 		// send card to queue
 		if (cardReceived) {
@@ -265,11 +254,9 @@ void Rfid_Task(void *parameter) {
 			cardId[cardIdSize - 1] = cardId[cardIdSize - 1] + gHallEffectSensor.waitForState(HallEffectWaitMS);
 	#endif
 
-	#ifdef PAUSE_WHEN_RFID_REMOVED
 			if (memcmp((const void *) lastValidcardId, (const void *) cardId, sizeof(cardId)) == 0) {
 				sameCardReapplied = true;
 			}
-	#endif
 
 			String hexString;
 			for (uint8_t i = 0u; i < cardIdSize; i++) {
@@ -286,24 +273,24 @@ void Rfid_Task(void *parameter) {
 				cardIdString += num;
 			}
 
-	#ifdef PAUSE_WHEN_RFID_REMOVED
-		#ifdef ACCEPT_SAME_RFID_AFTER_TRACK_END
-			if (!sameCardReapplied || gPlayProperties.trackFinished || gPlayProperties.playlistFinished) { // Don't allow to send card to queue if it's the same card again if track or playlist is unfnished
-		#else
-			if (!sameCardReapplied) { // Don't allow to send card to queue if it's the same card again...
-		#endif
-				xQueueSend(gRfidCardQueue, cardIdString.c_str(), 0);
-			} else {
-				// If pause-button was pressed while card was not applied, playback could be active. If so: don't pause when card is reapplied again as the desired functionality would be reversed in this case.
-				if (gPlayProperties.pausePlay && System_GetOperationMode() != OPMODE_BLUETOOTH_SINK) {
-					AudioPlayer_TrackControlToQueueSender(PAUSEPLAY); // ... play/pause instead
-					Log_Println(rfidTagReapplied, LOGLEVEL_NOTICE);
-				}
-			}
-			memcpy(lastValidcardId, uid, cardIdSize);
+			if (gPlayProperties.pauseIfRfidRemoved) {
+	#ifdef ACCEPT_SAME_RFID_AFTER_TRACK_END
+				if (!sameCardReapplied || gPlayProperties.trackFinished || gPlayProperties.playlistFinished) { // Don't allow to send card to queue if it's the same card again if track or playlist is unfnished
 	#else
-			xQueueSend(gRfidCardQueue, cardIdString.c_str(), 0); // If PAUSE_WHEN_RFID_REMOVED isn't active, every card-apply leads to new playlist-generation
+				if (!sameCardReapplied) { // Don't allow to send card to queue if it's the same card again...
 	#endif
+					xQueueSend(gRfidCardQueue, cardIdString.c_str(), 0);
+				} else {
+					// If pause-button was pressed while card was not applied, playback could be active. If so: don't pause when card is reapplied again as the desired functionality would be reversed in this case.
+					if (gPlayProperties.pausePlay && System_GetOperationMode() != OPMODE_BLUETOOTH_SINK) {
+						AudioPlayer_TrackControlToQueueSender(PAUSEPLAY); // ... play/pause instead
+						Log_Println(rfidTagReapplied, LOGLEVEL_NOTICE);
+					}
+				}
+				memcpy(lastValidcardId, uid, cardIdSize);
+			} else {
+				xQueueSend(gRfidCardQueue, cardIdString.c_str(), 0); // If pauseIfRfidRemoved isn't active, every card-apply leads to new playlist-generation
+			}
 		}
 
 		if (RFID_PN5180_NFC14443_STATE_ACTIVE == stateMachine) { // If 14443 is active, bypass 15693 as next check (performance)
@@ -376,7 +363,7 @@ void Rfid_EnableLpcd(void) {
 	#endif
 }
 
-// wake up from LPCD, check card is present. This works only for ISO-14443 compatible cards
+// wake up from LPCD, check card is present in NVS
 void Rfid_WakeupCheck(void) {
 	#ifdef PN5180_ENABLE_LPCD
 	// disable pin hold from deep sleep
@@ -386,16 +373,53 @@ void Rfid_WakeupCheck(void) {
 		#if (RFID_IRQ >= 0 && RFID_IRQ <= MAX_GPIO)
 	pinMode(RFID_IRQ, INPUT);
 		#endif
+
+	// read card serial to check NVS for entries
+	uint8_t uid[10];
+	bool isCardPresent;
+	bool cardInNVS = false;
+
 	static PN5180ISO14443 nfc14443(RFID_CS, RFID_BUSY, RFID_RST);
 	nfc14443.begin();
 	nfc14443.reset();
 	// enable RF field
 	nfc14443.setupRF();
-	if (!nfc14443.isCardPresent()) {
+
+	// 1. check for ISO-14443 card present
+	isCardPresent = nfc14443.readCardSerial(uid) >= 4;
+
+	// 2. check for ISO-15693 card present
+	if (!isCardPresent) {
+		static PN5180ISO15693 nfc15693(RFID_CS, RFID_BUSY, RFID_RST);
+		nfc15693.begin();
+		nfc15693.setupRF();
+		// do not handle encrypted cards in any way here
+		isCardPresent = nfc15693.getInventory(uid) == ISO15693_EC_OK;
+	}
+
+	// check for card id in NVS
+	if (isCardPresent) {
+		// uint8_t[10] -> char[cardIdStringSize]
+		char tagId[cardIdStringSize];
+		size_t pos = 0;
+		for (size_t i = 0; i < 10; i++) {
+			pos += snprintf(tagId + pos, cardIdStringSize - pos, "%03d", uid[i]);
+		}
+		tagId[cardIdStringSize - 1] = '\0';
+
+		// Try to lookup tagId in NVS
+		if (gPrefsRfid.isKey(tagId)) {
+			cardInNVS = gPrefsRfid.getString(tagId, "-1").compareTo("-1");
+		}
+	}
+
+	if (!cardInNVS) {
+		// no card found or card not in NVS, go back to deep sleep
 		nfc14443.reset();
 		uint16_t wakeupCounterInMs = 0x3FF; //  needs to be in the range of 0x0 - 0xA82. max wake-up time is 2960 ms.
 		if (nfc14443.switchToLPCD(wakeupCounterInMs)) {
 			Log_Println(lowPowerCardSuccess, LOGLEVEL_INFO);
+
 		// configure wakeup pin for deep-sleep wake-up, use ext1
 		#if (RFID_IRQ >= 0 && RFID_IRQ <= MAX_GPIO)
 			// configure wakeup pin for deep-sleep wake-up, use ext1. For a real GPIO only, not PE
@@ -405,11 +429,12 @@ void Rfid_WakeupCheck(void) {
 			// reset IRQ state on port-expander
 			Port_Exit();
 		#endif
+
 			// freeze pin states in deep sleep
 			gpio_hold_en(gpio_num_t(RFID_CS)); // CS/NSS
 			gpio_hold_en(gpio_num_t(RFID_RST)); // RST
 			gpio_deep_sleep_hold_en();
-			Log_Println(wakeUpRfidNoIso14443, LOGLEVEL_ERROR);
+			Log_Println(wakeUpRfidNoCard, LOGLEVEL_ERROR);
 			esp_deep_sleep_start();
 		} else {
 			Log_Println("switchToLPCD failed", LOGLEVEL_ERROR);

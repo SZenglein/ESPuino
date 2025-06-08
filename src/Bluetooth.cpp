@@ -12,8 +12,13 @@
 
 #ifdef BLUETOOTH_ENABLE
 	#include "esp_bt.h"
+	#include "BluetoothA2DPCommon.h"
 	#include "BluetoothA2DPSink.h"
 	#include "BluetoothA2DPSource.h"
+	#if (defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3))
+		#include "ESP_I2S.h"
+I2SClass i2s;
+	#endif
 #endif
 
 #ifdef BLUETOOTH_ENABLE
@@ -39,7 +44,7 @@ const char *getType() {
 #ifdef BLUETOOTH_ENABLE
 // for esp_a2d_connection_state_t see https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/esp_a2dp.html#_CPPv426esp_a2d_connection_state_t
 void connection_state_changed(esp_a2d_connection_state_t state, void *ptr) {
-	Log_Printf(LOGLEVEL_INFO, "Bluetooth %s => connection state: %s", getType(), ((BluetoothA2DPCommon *) ptr)->to_str(state));
+	Log_Printf(LOGLEVEL_INFO, "Bluetooth %s => connection state: %s (Free heap: %u Bytes)", getType(), ((BluetoothA2DPCommon *) ptr)->to_str(state), ESP.getFreeHeap());
 	if (System_GetOperationMode() == OPMODE_BLUETOOTH_SINK) {
 		// for Neopixel (indicator LEDs) use the webstream mode
 		gPlayProperties.isWebstream = false;
@@ -52,13 +57,43 @@ void connection_state_changed(esp_a2d_connection_state_t state, void *ptr) {
 #ifdef BLUETOOTH_ENABLE
 // for esp_a2d_audio_state_t see https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/esp_a2dp.html#_CPPv421esp_a2d_audio_state_t
 void audio_state_changed(esp_a2d_audio_state_t state, void *ptr) {
-	Log_Printf(LOGLEVEL_INFO, "Bluetooth %s => audio state: %s", getType(), ((BluetoothA2DPCommon *) ptr)->to_str(state));
+	Log_Printf(LOGLEVEL_INFO, "Bluetooth %s => audio state: %s (Free heap: %u Bytes)", getType(), ((BluetoothA2DPCommon *) ptr)->to_str(state), ESP.getFreeHeap());
 	if (System_GetOperationMode() == OPMODE_BLUETOOTH_SINK) {
 		// set play/pause status
 		gPlayProperties.pausePlay = (state != ESP_A2D_AUDIO_STATE_STARTED);
 		// for Neopixel (indicator LEDs) use the webstream mode
 		gPlayProperties.playlistFinished = false;
 		gPlayProperties.isWebstream = true;
+	}
+}
+#endif
+
+#ifdef BLUETOOTH_ENABLE
+// gets called when pause/resume/next/previous button on bluetooth speaker is pressed
+void button_handler(uint8_t id, bool isReleased) {
+	if (isReleased) {
+		switch (id) {
+			case 70:
+			case 68:
+				// 70=pause, 68=resume
+				Log_Printf(LOGLEVEL_DEBUG, "Bluetooth button id %u (pause/resume) is released.", id);
+				AudioPlayer_TrackControlToQueueSender(PAUSEPLAY);
+				break;
+			case 75:
+				// 75=next
+				Log_Printf(LOGLEVEL_DEBUG, "Bluetooth button id %u (next track) is released.", id);
+				AudioPlayer_TrackControlToQueueSender(NEXTTRACK);
+				break;
+			case 76:
+				// 76=previous
+				Log_Printf(LOGLEVEL_DEBUG, "Bluetooth button id %u (previous track) is released.", id);
+				AudioPlayer_TrackControlToQueueSender(PREVIOUSTRACK);
+				break;
+			default:
+				// unknown/unsupported button id
+				Log_Printf(LOGLEVEL_DEBUG, "Unknown bluetooth button id %u is released.", id);
+				break;
+		}
 	}
 }
 #endif
@@ -127,6 +162,8 @@ int32_t get_data_channels(Frame *frame, int32_t channel_len) {
 		};
 		vRingbufferReturnItem(audioSourceRingBuffer, (void *) sampleBuff);
 	};
+	// avoid WDT reset & give audio/other tasks some CPU time
+	vTaskDelay(portTICK_PERIOD_MS * 1);
 	return channel_len;
 };
 #endif
@@ -174,23 +211,33 @@ void Bluetooth_Init(void) {
 	if (System_GetOperationMode() == OPMODE_BLUETOOTH_SINK) {
 		// bluetooth in sink mode (player acts as a BT-Speaker)
 		a2dp_sink = new BluetoothA2DPSink();
+	#if (defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3))
+		i2s.setPins(I2S_BCLK, I2S_LRC, I2S_DOUT);
+		if (!i2s.begin(I2S_MODE_STD, 44100, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO, I2S_STD_SLOT_BOTH)) {
+			Log_Println("Failed to initialize I2S!", LOGLEVEL_ERROR);
+			while (1)
+				; // do nothing
+		}
+		a2dp_sink->set_output(i2s);
+	#else
 		i2s_pin_config_t pin_config = {
-	#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+		#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
 			.mck_io_num = 0,
-	#endif
+		#endif
 			.bck_io_num = I2S_BCLK,
 			.ws_io_num = I2S_LRC,
 			.data_out_num = I2S_DOUT,
 			.data_in_num = I2S_PIN_NO_CHANGE
 		};
 		a2dp_sink->set_pin_config(pin_config);
-		a2dp_sink->activate_pin_code(false);
-	#ifdef PLAY_MONO_SPEAKER
-		a2dp_sink->set_mono_downmix(true);
 	#endif
+		a2dp_sink->set_rssi_callback(rssi);
+		a2dp_sink->activate_pin_code(false);
+		if (gPrefsSettings.getBool("playMono", false)) {
+			a2dp_sink->set_mono_downmix(true);
+		}
 		a2dp_sink->set_auto_reconnect(true);
 		a2dp_sink->set_rssi_active(true);
-		a2dp_sink->set_rssi_callback(rssi);
 		// start bluetooth sink
 		a2dp_sink->start(nameBluetoothSinkDevice);
 		Log_Printf(LOGLEVEL_INFO, "Bluetooth sink started, Device: %s", nameBluetoothSinkDevice);
@@ -217,10 +264,11 @@ void Bluetooth_Init(void) {
 		String btPinCode = gPrefsSettings.getString("btPinCode", "");
 		if (btPinCode != "") {
 			a2dp_source->set_ssp_enabled(true);
-			a2dp_source->set_pin_code(btPinCode.c_str());
+			a2dp_source->set_pin_code(btPinCode.c_str(), ESP_BT_PIN_TYPE_VARIABLE);
 		}
 		// start bluetooth source
 		a2dp_source->set_ssid_callback(scan_bluetooth_device_callback);
+		a2dp_source->set_avrc_passthru_command_callback(button_handler);
 		a2dp_source->start(get_data_channels);
 		// get device name
 		btDeviceName = "";
@@ -309,11 +357,11 @@ void Bluetooth_SetVolume(const int32_t _newVolume, bool reAdjustRotary) {
 #endif
 }
 
-bool Bluetooth_Source_SendAudioData(uint32_t *sample) {
+bool Bluetooth_Source_SendAudioData(int16_t *outBuff, uint16_t validSamples) {
 #ifdef BLUETOOTH_ENABLE
 	// send audio data to ringbuffer
-	if ((System_GetOperationMode() == OPMODE_BLUETOOTH_SOURCE) && (a2dp_source) && a2dp_source->is_connected()) {
-		return (pdTRUE == xRingbufferSend(audioSourceRingBuffer, sample, sizeof(uint32_t), (TickType_t) portMAX_DELAY));
+	if ((System_GetOperationMode() == OPMODE_BLUETOOTH_SOURCE) && (a2dp_source) && (validSamples > 0) && a2dp_source->is_connected()) {
+		return (pdTRUE == xRingbufferSend(audioSourceRingBuffer, outBuff, sizeof(uint32_t) * validSamples, (TickType_t) portMAX_DELAY));
 	} else {
 		return false;
 	}
