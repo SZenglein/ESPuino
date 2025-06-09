@@ -755,8 +755,13 @@ void AudioPlayer_Task(void *parameter) {
 				while (Wlan_ConnectionTryInProgress()) {
 					vTaskDelay(portTICK_PERIOD_MS * 100u);
 				}
-				audioReturnCode = audio->connecttohost(gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber));
-				gPlayProperties.playlistFinished = false;
+				if (!Wlan_IsConnected()) {
+					Log_Println(webstreamNotAvailable, LOGLEVEL_ERROR);
+					audioReturnCode = false;
+				} else {
+					audioReturnCode = audio->connecttohost(gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber));
+					gPlayProperties.playlistFinished = false;
+				}
 			} else if (gPlayProperties.playMode != WEBSTREAM && !gPlayProperties.isWebstream) {
 				// Files from SD
 				if (!gFSystem.exists(gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber))) { // Check first if file/folder exists
@@ -1143,7 +1148,6 @@ void AudioPlayer_TrackQueueDispatcher(const char *_itemToPlay, const uint32_t _l
 
 		case WEBSTREAM: { // This is always just one "track"
 			Log_Println(modeWebstream, LOGLEVEL_NOTICE);
-			xQueueSend(gTrackQueue, &(musicFiles), 0);
 			break;
 		}
 

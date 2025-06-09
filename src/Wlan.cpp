@@ -496,19 +496,6 @@ void handleWifiStateConnectionSuccess() {
 	delete dnsServer;
 	dnsServer = nullptr;
 
-
-	bool playLastRfidAfterReboot;
-#ifdef PLAY_LAST_RFID_AFTER_REBOOT
-	playLastRfidAfterReboot = gPrefsSettings.getBool("playLastOnBoot", true);
-#else
-	playLastRfidAfterReboot = gPrefsSettings.getBool("playLastOnBoot", false);
-#endif
-
-	if (playLastRfidAfterReboot && gPlayLastRfIdWhenWiFiConnected && gTriedToConnectToHost) {
-		gPlayLastRfIdWhenWiFiConnected = false;
-		recoverLastRfidPlayedFromNvs(true);
-	}
-
 	wifiState = WIFI_STATE_CONNECTED;
 	Mqtt_OnWifiConnected();
 }
