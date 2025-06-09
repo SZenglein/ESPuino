@@ -30,6 +30,9 @@
 
 #include <Wire.h>
 
+bool gPlayLastRfIdWhenWiFiConnected = false;
+bool gTriedToConnectToHost = false;
+
 static constexpr const char *logo = R"literal(
  _____   ____    ____            _
 | ____| / ___|  |  _ \   _   _  (_)  _ __     ___
@@ -63,43 +66,49 @@ TwoWire i2cBusTwo = TwoWire(1);
 // At start of a boot, bootCount is incremented by one and after 30s decremented because
 // uptime of 30s is considered as "successful boot".
 void recoverBootCountFromNvs(void) {
-	uint32_t bootCount = gPrefsSettings.getUInt("bootCount", 999);
+	if (recoverBootCount) {
+		recoverBootCount = false;
+		resetBootCount = true;
+		bootCount = gPrefsSettings.getUInt("bootCount", 999);
 
-	if (bootCount == 999) { // first init
-		bootCount = 1;
-		gPrefsSettings.putUInt("bootCount", bootCount);
-	} else if (bootCount >= 3) { // considered being a bootloop => don't recover last rfid!
-		bootCount = 1;
-		gPrefsSettings.putUInt("bootCount", bootCount);
-		gPrefsSettings.remove("lastRfid"); // reset last rfid
-		Log_Println(bootLoopDetected, LOGLEVEL_ERROR);
-	} else { // normal operation
-		gPrefsSettings.putUInt("bootCount", ++bootCount);
+		if (bootCount == 999) { // first init
+			bootCount = 1;
+			gPrefsSettings.putUInt("bootCount", bootCount);
+		} else if (bootCount >= 3) { // considered being a bootloop => don't recover last rfid!
+			bootCount = 1;
+			gPrefsSettings.putUInt("bootCount", bootCount);
+			gPrefsSettings.putString("lastRfid", "-1"); // reset last rfid
+			Log_Println(bootLoopDetected, LOGLEVEL_ERROR);
+			recoverLastRfid = false;
+		} else { // normal operation
+			gPrefsSettings.putUInt("bootCount", ++bootCount);
+		}
 	}
-}
 
-void resetBootCount(void) {
-	static bool wasReset = false;
-
-	if (!wasReset && millis() >= 30000) { // reset bootcount
-		wasReset = true;
-		gPrefsSettings.putUInt("bootCount", 0);
+	if (resetBootCount && millis() >= 30000) { // reset bootcount
+		resetBootCount = false;
+		bootCount = 0;
+		gPrefsSettings.putUInt("bootCount", bootCount);
 		Log_Println(noBootLoopDetected, LOGLEVEL_INFO);
 	}
 }
 
 // Get last RFID-tag applied from NVS
-void recoverLastRfidPlayedFromNvs() {
-	if (System_GetOperationMode() == OPMODE_BLUETOOTH_SINK) { // Don't recover if BT-mode is desired
-		return;
-	}
-
-	String lastRfidPlayed = gPrefsSettings.getString("lastRfid", "-1");
-	if (!lastRfidPlayed.compareTo("-1")) {
-		Log_Println(unableToRestoreLastRfidFromNVS, LOGLEVEL_INFO);
-	} else {
-		xQueueSend(gRfidCardQueue, lastRfidPlayed.c_str(), 0);
-		Log_Printf(LOGLEVEL_INFO, restoredLastRfidFromNVS, lastRfidPlayed.c_str());
+void recoverLastRfidPlayedFromNvs(bool force) {
+	if (recoverLastRfid || force) {
+		if (System_GetOperationMode() == OPMODE_BLUETOOTH_SINK) { // Don't recover if BT-mode is desired
+			recoverLastRfid = false;
+			return;
+		}
+		recoverLastRfid = false;
+		String lastRfidPlayed = gPrefsSettings.getString("lastRfid", "-1");
+		if (!lastRfidPlayed.compareTo("-1")) {
+			Log_Println(unableToRestoreLastRfidFromNVS, LOGLEVEL_INFO);
+		} else {
+			xQueueSend(gRfidCardQueue, lastRfidPlayed.c_str(), 0);
+			gPlayLastRfIdWhenWiFiConnected = !force;
+			Log_Printf(LOGLEVEL_INFO, restoredLastRfidFromNVS, lastRfidPlayed.c_str());
+		}
 	}
 }
 
@@ -204,11 +213,6 @@ void setup() {
 
 #ifdef CONTROLS_LOCKED_BY_DEFAULT
 	System_SetLockControls(true);
-#endif
-
-#ifdef PLAY_LAST_RFID_AFTER_REBOOT
-	recoverBootCountFromNvs();
-	recoverLastRfidPlayedFromNvs();
 #endif
 }
 
