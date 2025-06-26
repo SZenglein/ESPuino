@@ -9,10 +9,7 @@ import os
 import shutil
 import mimetypes
 import gzip
-import subprocess
-import sys
 import json
-import importlib.metadata
 Import("env")
 
 from flask_minify.parsers import Parser
