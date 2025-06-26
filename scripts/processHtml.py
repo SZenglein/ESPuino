@@ -9,25 +9,14 @@ import os
 import shutil
 import mimetypes
 import gzip
-Import("env")  # pylint: disable=undefined-variable
-
-try:
-    from flask_minify.parsers import Parser
-except ImportError:
-  print("Trying to Install required module: flask_minify\nIf this failes, please execute \"pip install flask_minify\" manually.")
-  env.Execute("$PYTHONEXE -m pip install flask_minify")
+import subprocess
+import sys
+import json
+import importlib.metadata
+Import("env")
 
 from flask_minify.parsers import Parser
-import json
-
-try:    
-    import pkg_resources
-    pkg_resources.require("minify_html==0.15.0")
-    import minify_html
-except pkg_resources.ResolutionError:
-    print("Trying to Install required module: minify_html\nIf this failes, please execute \"pip install minify_html==0.15.0\" manually.")
-    env.Execute("$PYTHONEXE -m pip install minify_html==0.15.0")
-    import minify_html
+import minify_html
 
 OUTPUT_DIR = (
     Path(env.subst("$BUILD_DIR")) / "generated"

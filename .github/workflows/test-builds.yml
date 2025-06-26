@@ -46,7 +46,7 @@ jobs:
           python-version: '3.11'
       - name: Install PlatformIO Core
         run: |
-          pip install -U setuptools platformio
+          pip install -U platformio
           pio upgrade --dev
           pio pkg update --global
       - name: Build ${{ matrix.variant }}
