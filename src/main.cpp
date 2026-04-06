@@ -173,9 +173,9 @@ void setup() {
 	#endif
 #endif
 	RotaryEncoder_Init();
+	Bluetooth_Init();
 	Wlan_Init();
 	Mqtt_Init();
-	Bluetooth_Init();
 
 	if (OPMODE_NORMAL == System_GetOperationMode()) {
 		Wlan_Cyclic();
@@ -215,9 +215,13 @@ void setup() {
 void loop() {
 	if (OPMODE_BLUETOOTH_SINK == System_GetOperationMode()) {
 		// bluetooth speaker mode
+		Wlan_Cyclic();
+		Web_Cyclic();
 		Bluetooth_Cyclic();
 	} else if (OPMODE_BLUETOOTH_SOURCE == System_GetOperationMode()) {
 		// bluetooth headset mode
+		Wlan_Cyclic();
+		Web_Cyclic();
 		Bluetooth_Cyclic();
 		RotaryEncoder_Cyclic();
 	} else {
@@ -227,13 +231,9 @@ void loop() {
 		Ftp_Cyclic();
 		RotaryEncoder_Cyclic();
 	}
-	vTaskDelay(portTICK_PERIOD_MS * 1u);
 	AudioPlayer_Cyclic();
-	vTaskDelay(portTICK_PERIOD_MS * 1u);
 	Battery_Cyclic();
-	// Port_Cyclic(); // called by button (controlled via hw-timer)
 	Button_Cyclic();
-	vTaskDelay(portTICK_PERIOD_MS * 1u);
 	System_Cyclic();
 	Rfid_PreferenceLookupHandler();
 
@@ -250,9 +250,10 @@ void loop() {
 	}
 
 	IrReceiver_Cyclic();
-	vTaskDelay(portTICK_PERIOD_MS * 2u);
 
 #ifdef HALLEFFECT_SENSOR_ENABLE
 	gHallEffectSensor.cyclic();
 #endif
+
+	vTaskDelay(portTICK_PERIOD_MS * 6u);
 }

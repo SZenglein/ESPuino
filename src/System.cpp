@@ -7,6 +7,7 @@
 #include "AudioPlayer.h"
 #include "Led.h"
 #include "Log.h"
+#include "MemX.h"
 #include "Mqtt.h"
 #include "Port.h"
 #include "Power.h"
@@ -105,7 +106,7 @@ bool System_SetSleepTimer(uint8_t minutes) {
 	}
 
 #ifdef MQTT_ENABLE
-	publishMqtt(topicSleepTimerState, static_cast<uint32_t>(System_GetSleepTimer()), false);
+	publishMqtt(topicSleepTimer, static_cast<uint32_t>(System_GetSleepTimer()), false);
 #endif
 
 	return sleepTimerEnabled;
@@ -276,7 +277,7 @@ void System_ShowWakeUpReason() {
 
 void System_esp_print_tasks(void) {
 #ifdef CONFIG_FREERTOS_USE_TRACE_FACILITY
-	char *pbuffer = (char *) calloc(2048, 1);
+	char *pbuffer = x_calloc(2048, 1);
 	vTaskGetRunTimeStats(pbuffer);
 	Serial.printf("=====\n%s\n=====", pbuffer);
 	free(pbuffer);

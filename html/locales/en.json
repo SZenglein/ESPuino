@@ -44,6 +44,8 @@
 			"offsetpause": "Center pause LEDs",
 			"huestart": "Hue-Start for playlist progress",
 			"hueend": "Hue-End for playlist progress",
+			"hueatmo": "Hue-Atmolight",
+			"satatmo": "Saturation-Atmolight",
 			"dimmablestates": "Dimmable steps",
 			"reverserotation": "Reverse direction of rotation",
 			"offset": "Offset start LED"
@@ -185,9 +187,12 @@
 					"2": "Single track (loop)",
 					"12": "Single track of a directory (random). Followed by sleep.",
 					"3": "Audiobook",
+					"16": "Audiobook with subdirectories (rekursive)",
 					"4": "Audiobook (loop)",
 					"5": "All tracks of a directory (sorted)",
+					"15": "All tracks of a directory + subdirectories (sorted, recursive)",
 					"6": "All tracks of a directory (random)",
+					"17": "All tracks of a directory + subdirectories (random, recursive)",
 					"7": "All tracks of a directory (sorted, loop)",
 					"9": "All tracks of a directory (random, loop)",
 					"13": "All tracks of a random subdirectory (sorted)",
@@ -219,6 +224,7 @@
 					"150": "Enable FTP",
 					"151": "Announce IP-Address",
 					"152": "Announce current time",
+					"153": "Toggle Ambient Light",
 					"0": "Remove assignment",
 					"170": "Toggle Play/Pause",
 					"171": "Previous track",
@@ -234,7 +240,19 @@
 					"181": "Seek backwards (n seconds)",
 					"182": "Stop",
 					"183": "Restart",
-					"199": "Display task load (console)"
+					"184": "Jump to next folder",
+					"185": "Jump to previous folder",
+					"199": "Display task load (console)",
+					"241": "Play virtual RFID-card 01",
+					"242": "Play virtual RFID-card 02",
+					"243": "Play virtual RFID-card 03",
+					"244": "Play virtual RFID-card 04",
+					"245": "Play virtual RFID-card 05",
+					"246": "Play virtual RFID-card 06",
+					"247": "Play virtual RFID-card 07",
+					"248": "Play virtual RFID-card 08",
+					"249": "Play virtual RFID-card 09",
+					"250": "Play virtual RFID-card 10"
 				}
 			}
 		}
@@ -244,7 +262,7 @@
 		"enable": "Enable MQTT",
 		"clientId": {
 			"title": "MQTT-ClientId",
-			"placeholder": "f.e. ESPuino",
+			"placeholder": "f.e. ESPuino-<MAC>",
 			"validation": ""
 		},
 		"server": {
@@ -261,6 +279,22 @@
 			"title": "MQTT-password (optional)",
 			"placeholder": "password",
 			"validation": ""
+		},
+		"baseTopic": {
+			"title": "Base topic (optional)",
+			"placeholder": "f.e. home/espuino",
+			"validation": ""
+		},
+		"deviceId": {
+			"title": "Device Id",
+			"placeholder": "f.e. ESPuino-<MAC>",
+			"validation": ""
+		},
+		"topicsPreview": "Full topics (preview)",
+		"restartNote": "Note: MQTT settings only take effect after restarting the device.",
+		"restartPrompt": "MQTT settings were saved. Restart now to apply changes?",
+		"topics": {
+			"preview": "Full topics (preview)"
 		},
 		"port": {
 			"title": "MQTT-port",
@@ -285,16 +319,24 @@
 		}
 	},
 	"bt": {
+		"normal": {
+			"title": "Exit Bluetooth Mode",
+			"desc": "Returns to normal mode with WiFi functionality. Music from SD card and web streams can be played.",
+			"button": "Exit Bluetooth Mode",
+			"indicator": "WiFi Mode (RSSI: {{rssi}} dBm)"
+		},
 		"sink": {
 			"title": "ESPuino as Bluetooth speaker",
-			"desc": "ESPuino is started as a Bluetooth speaker. After switching to this mode, the web interface will no longer be available until the system is restarted in normal mode.",
-			"button": "Start as Bluetooth speaker"
+			"desc": "ESPuino is started as a Bluetooth speaker.",
+			"button": "Start as Bluetooth speaker",
+			"indicator": "Bluetooth Speaker Mode"
 		},
 		"source": {
 			"configtitle": "Bluetooth headphone settings",
 			"title": "Connect with Bluetooth headphone",
-			"desc": "The device connects to the specified Bluetooth headset. After switching to this mode, the web interface will no longer be available until the system is restarted in normal mode.",
-			"button": "Start in headphone mode"
+			"desc": "The device connects to the specified Bluetooth headset.",
+			"button": "Start in headphone mode",
+			"indicator": "Bluetooth Headphone Mode"
 		},
 		"device": {
 			"title": "Bluetooth device (headphone)",
@@ -344,7 +386,8 @@
 		"neopixel": {
 			"title": "Neopixel (brightness)",
 			"restart": "After restart",
-			"nightmode": "For nightmode"
+			"nightmode": "For nightmode",
+			"atmomode": "For Atmolight-mode"
 		},
 		"sleep": {
 			"title": "Deep Sleep",
@@ -364,7 +407,8 @@
 			"sortMode": "Sorting mode for playlist and file browser",
 			"strcmp": "Standard sorting",
 			"strnatcmp": "Natural: case-sensitive",
-			"strnatcasecmp": "Natural: case-insensitive"
+			"strnatcasecmp": "Natural: case-insensitive",
+			"recDepth": "Maximum recursion depth at generation of recursive playlists"
 		}
 	},
 	"tools": {

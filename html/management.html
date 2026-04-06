@@ -89,6 +89,10 @@
 			opacity: 0;
 		}
 
+		.sat-slider .slider-track {
+			background: linear-gradient(to right in hsl, #000, #fff);
+		}
+
 		legend.scheduler-border {
 			width: inherit;
 			/* Or auto */
@@ -107,9 +111,9 @@
 		}
 
 		.coverimage-container {
-			width: 80%;
-			max-width: 400px;
-			height: 15%;
+			object-fit: cover;
+			max-width: 100%;
+			height: 300px;
 			margin: auto;
 			display: block;
 		}
@@ -175,7 +179,7 @@
 		}
 
 		.bs-tooltip-top {
-			width: 30px;
+			width: 40px;
 		}
 
 		input::placeholder {
@@ -278,6 +282,8 @@
 				<div class="modal-footer">
 					<button type="button" id="modalInfoRefresh" class="btn btn-primary me-auto"><i
 							class="fas fa-sync"></i><span data-i18n="refresh"></span></button>
+					<button type="button" id="modalRestartNow" class="btn btn-danger" style="display:none"
+						onclick="restartDevice()"><span data-i18n="restart"></span></button>
 					<button type="button" class="btn btn-primary" data-bs-dismiss="modal"><span
 							data-i18n="ok"></span></button>
 				</div>
@@ -697,11 +703,19 @@
 											data-i18n="files.rfid.playmode.mode.12"></option>
 										<option class="option-file-and-folder" value="3"
 											data-i18n="files.rfid.playmode.mode.3"></option>
+										<option class="option-file-and-folder" value="16"
+											data-i18n="files.rfid.playmode.mode.16"></option>
 										<option class="option-file-and-folder" value="4"
 											data-i18n="files.rfid.playmode.mode.4"></option>
 										<option class="option-folder" value="5" data-i18n="files.rfid.playmode.mode.5">
 										</option>
+										<option class="option-folder" value="15"
+											data-i18n="files.rfid.playmode.mode.15">
+										</option>
 										<option class="option-folder" value="6" data-i18n="files.rfid.playmode.mode.6">
+										</option>
+										<option class="option-folder" value="17"
+											data-i18n="files.rfid.playmode.mode.17">
 										</option>
 										<option class="option-folder" value="7" data-i18n="files.rfid.playmode.mode.7">
 										</option>
@@ -737,6 +751,7 @@
 				<form class="needs-validation" action="#mqttConfig" method="POST"
 					onsubmit="mqttSettings('mqttConfig'); return false">
 					<legend data-i18n="mqtt.title"></legend>
+					<div class="mb-2"><small class="text-muted" data-i18n="mqtt.restartNote"></small></div>
 					<div class="form-check col-md-12">
 						<input class="form-check-input" type="checkbox" value="1" id="mqttEnable"
 							name="mqttEnable">&nbsp; <label class="form-check-label" for="mqttEnable"
@@ -746,6 +761,12 @@
 						<label for="mqttClientId" data-i18n="[prepend]mqtt.clientId.title">:</label>
 						<input type="text" class="form-control" id="mqttClientId" minlength="7" maxlength="0"
 							data-i18n="[placeholder]mqtt.clientId.placeholder" name="mqttClientId" value="">
+						<label for="mqttBaseTopic" data-i18n="[prepend]mqtt.baseTopic.title">:</label>
+						<input type="text" class="form-control" id="mqttBaseTopic" maxlength="0"
+							data-i18n="[placeholder]mqtt.baseTopic.placeholder" name="mqttBaseTopic" value="">
+						<label for="mqttDeviceId" data-i18n="[prepend]mqtt.deviceId.title">:</label>
+						<input type="text" class="form-control" id="mqttDeviceId" maxlength="0"
+							data-i18n="[placeholder]mqtt.deviceId.placeholder" name="mqttDeviceId" value="">
 						<label for="mqttServer" data-i18n="[prepend]mqtt.server.title">:</label>
 						<input type="text" class="form-control" id="mqttServer" minlength="7" maxlength="0"
 							data-i18n="[placeholder]mqtt.server.placeholder" name="mqttServer" value="">
@@ -800,6 +821,18 @@
 		</div>
 		<!-- ### Tab Bluetooth ### -->
 		<div class="tab-pane main-tab-pane fade mb-4" id="nav-bt" role="tabpanel" aria-labelledby="nav-bt-tab">
+			<div class="container" id="btBackToNormal" style="display: none;">
+				<div class="mb-3 col-md-12">
+					<legend data-i18n="bt.normal.title">Zurück zum Normal-Modus</legend>
+					<div data-i18n="bt.normal.desc">Kehrt zum normalen Modus mit WiFi zurück</div>
+					<br>
+					<div class="text-center">
+						<button type="button" class="btn btn-primary" onclick="setOperationMode(0)"
+							data-i18n="bt.normal.button">Zu Normal-Modus wechseln</button>
+					</div>
+				</div>
+				<hr>
+			</div>
 			<div class="container" id="btConfig">
 				<form action="#btConfig" method="POST" onsubmit="btSettings('btConfig'); return false">
 					<div class="mb-3 col-md-12">
@@ -823,7 +856,7 @@
 					<div data-i18n="bt.source.desc"></div>
 					<br>
 					<div class="text-center">
-						<button type="button" class="btn btn-primary" onclick="sendControl(141)"
+						<button type="button" class="btn btn-primary" onclick="setOperationMode(2)"
 							data-i18n="bt.source.button"></button>
 					</div>
 				</div>
@@ -835,7 +868,7 @@
 					<div data-i18n="bt.sink.desc"></div>
 					<br>
 					<div class="text-center">
-						<button type="button" class="btn btn-primary" onclick="sendControl(140)"
+						<button type="button" class="btn btn-primary" onclick="setOperationMode(1)"
 							data-i18n="bt.sink.button"></button>
 					</div>
 				</div>
@@ -1001,6 +1034,21 @@
 									<i class="fas fa-sun fa-2x .icon-pos"></i>
 								</div>
 							</div>
+							<br>
+							<label for="atmoBrightness" data-i18n="[prepend]general.neopixel.atmomode">:</label>
+							<div class="slider-container">
+								<div class="float-end" style="padding-left: 30px">
+									<i class="far fa-sun fa-2x .icon-pos"></i>
+								</div>
+								<div class="slider-container-inner">
+									<input data-provide="slider" type="number" data-slider-min="0" data-slider-max="255"
+										min="0" max="255" class="form-control" id="atmoBrightness" name="atmoBrightness"
+										data-slider-value="" value="" required>
+								</div>
+								<div class="float-end" style="padding-left: 10px">
+									<i class="fas fa-sun fa-2x .icon-pos"></i>
+								</div>
+							</div>
 						</fieldset>
 					</div>
 					<div class="col-md-12 mb-4">
@@ -1033,7 +1081,7 @@
 									<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" data-slider-step="0.1" data-slider-min="2.5"
+									<input data-provide="slider" data-slider-step="0.05" data-slider-min="2.5"
 										data-slider-max="5.0" min="2.5" max="5.0" type="text" class="form-control"
 										id="warningLowVoltage" name="warningLowVoltage" data-slider-value="" value=""
 										pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1048,7 +1096,7 @@
 									<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" min="2.5" data-slider-step="0.1" data-slider-min="2.5"
+									<input data-provide="slider" min="2.5" data-slider-step="0.05" data-slider-min="2.5"
 										data-slider-max="5.0" max="5.0" type="text" class="form-control"
 										id="voltageIndicatorLow" name="voltageIndicatorLow" data-slider-value=""
 										value="" pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1063,7 +1111,7 @@
 									<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 								</div>
 								<div class="slider-container-inner">
-									<input data-provide="slider" data-slider-step="0.1" data-slider-min="2.0"
+									<input data-provide="slider" data-slider-step="0.05" data-slider-min="2.0"
 										data-slider-max="5.0" min="2.0" max="5.0" type="text" class="form-control"
 										id="voltageIndicatorHigh" name="voltageIndicatorHigh" data-slider-value=""
 										value="" pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1080,7 +1128,7 @@
 										<i class="fas fa-battery-quarter fa-2x .icon-pos"></i>
 									</div>
 									<div class="slider-container-inner">
-										<input data-provide="slider" data-slider-step="0.1" data-slider-min="2.0"
+										<input data-provide="slider" data-slider-step="0.05" data-slider-min="2.0"
 											data-slider-max="5.0" min="2.0" max="5.0" type="text" class="form-control"
 											id="criticalVoltage" name="criticalVoltage" data-slider-value="" value=""
 											pattern="^\d{1,2}(\.\d{1,3})?" required>
@@ -1115,6 +1163,15 @@
 								<option value="3" selected data-i18n="general.playlist.strnatcasecmp"></option>
 								<option value="2" data-i18n="general.playlist.strnatcmp"></option>
 								<option value="1" data-i18n="general.playlist.strcmp"></option>
+							</select>
+						</fieldset>
+						<fieldset>
+							<label for="playlistRecDepth" data-i18n="[prepend]general.playlist.recDepth">:</label>
+							<select id="playlistRecDepth" name="playlistRecDepth" class="form-control form-select">
+								<option value="4">4</option>
+								<option value="3">3</option>
+								<option value="2">2</option>
+								<option value="1">1</option>
 							</select>
 						</fieldset>
 					</div>
@@ -1157,6 +1214,18 @@
 								<div class="hue-slider">
 									<input id="led_hueEnd" type="number" data-provide="slider" data-slider-min="-1"
 										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueEnd"
+										data-slider-value="-1" value="-1">
+								</div>
+								<label for="led_hueAtmo" data-i18n="settingsex.led.hueatmo"></label>: <br>
+								<div class="hue-slider">
+									<input id="led_hueAtmo" type="number" data-provide="slider" data-slider-min="-1"
+										data-slider-max="255" min="-1" max="255" class="form-control" name="led_hueAtmo"
+										data-slider-value="-1" value="-1">
+								</div>
+								<label for="led_satAtmo" data-i18n="settingsex.led.satatmo"></label>: <br>
+								<div class="sat-slider">
+									<input id="led_satAtmo" type="number" data-provide="slider" data-slider-min="-1"
+										data-slider-max="255" min="-1" max="255" class="form-control" name="led_satAtmo"
 										data-slider-value="-1" value="-1">
 								</div>
 								<label for="led_dimStates" data-i18n="settingsex.led.dimmablestates"></label>: <br>
@@ -1591,15 +1660,36 @@
 		} /* putData */
 		async function restartDevice() {
 			console.log("restart..");
+			// Close any existing prompt/modal immediately
+			try {
+				const modalEl = document.getElementById('modalInfo');
+				const modalInst = bootstrap.Modal.getInstance(modalEl);
+				if (modalInst) modalInst.hide();
+			} catch (e) { }
 			await fetch("http://" + host + "/restart", {
 				method: "POST"
 			});
 			tryRedirect();
+			// Ensure modal buttons are in correct state for restart
+			$('#modalRestartNow').hide();
+			$('#modalInfoRefresh').show();
 			$('.modal-title').text(i18next.t("restart"));
 			$('.modal-body').html(i18next.t("restartinfo"));
 			$(".modal-body").removeAttr("style");
-			new bootstrap.Modal(document.getElementById('modalInfo')).toggle();
+			// Show restart info modal
+			new bootstrap.Modal(document.getElementById('modalInfo')).show();
 		} /* restart */
+
+		function showMqttRestartPrompt() {
+			// Reuse the info modal to prompt the user to restart now or later
+			$('.modal-title').text(i18next.t('restart'));
+			$('.modal-body').html(i18next.t('mqtt.restartPrompt'));
+			// Hide refresh button and show restart-now button
+			$('#modalInfoRefresh').hide();
+			$('#modalRestartNow').show();
+			new bootstrap.Modal(document.getElementById('modalInfo')).toggle();
+		}
+
 		async function shutdownDevice() {
 			console.log("shutdown..");
 			await fetch("http://" + host + "/shutdown", {
@@ -1886,8 +1976,14 @@
 			var node = ref.get_node(nodeId);
 			getData("http://" + host + "/explorer?path=" + encodeURIComponent(node.data.path), function (data) {
 				/* We now have data! */
+				// If root node and first element has root flag, skip it (volume label)
+				var startIndex = 0;
+				if (node.data.path === "/" && data.length > 0 && data[0].root === "sd") {
+					startIndex = 1;
+				}
 				deleteChildrenNodes(nodeId);
-				addFileDirectory(nodeId, data);
+				// Pass only actual children (skip volume label if present)
+				addFileDirectory(nodeId, data.slice(startIndex));
 				ref.open_node(nodeId);
 			});
 		}
@@ -1939,7 +2035,7 @@
 							opened: true,
 							selected: true
 						},
-						type: 'folder',
+						type: 'sdcard',
 						children: [],
 						data: {
 							path: '/',
@@ -1948,6 +2044,9 @@
 					}
 				},
 				'types': {
+					'sdcard': {
+						'icon': "fa fa-sd-card"
+					},
 					'folder': {
 						'icon': "fa fa-folder"
 					},
@@ -2068,6 +2167,20 @@
 			getData("http://" + host + "/explorer?path=/", function (data) {
 				/* We now have data! */
 				$('#explorerTree').jstree(true).settings.core.data.children = [];
+
+				// If first element has root flag, use it to rename root node and remove it from data
+				if (data.length > 0 && data[0].root === "sd") {
+					// Rename root node with volume label from backend
+					var tree = $('#explorerTree').jstree(true);
+					tree.settings.core.data.text = data[0].name;
+					var rootNode = tree.get_node(tree.get_container().children('ul').children('li')[0]);
+					if (rootNode) {
+						tree.rename_node(rootNode, data[0].name);
+					}
+					// Remove volume label from data array before sorting
+					data = data.slice(1);
+				}
+
 				sortData(data);
 				for (var i = 0; i < data.length; i++) {
 					var newChild = {
@@ -2092,7 +2205,31 @@
 		var volumeSlider = new Slider("#setVolume");
 		document.getElementById('setVolume').remove();
 
-		function connect() {
+		function updateOperationModeIndicator(opmode) {
+			const btStartSource = document.getElementById('btStartSource');
+			const btStartSink = document.getElementById('btStartSink');
+
+			// OPMODE_NORMAL = 0, OPMODE_BLUETOOTH_SINK = 1, OPMODE_BLUETOOTH_SOURCE = 2
+			if (opmode === 0) {
+				// Normal mode - no active panel
+				btStartSource.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				btStartSink.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				// Hide back to normal section
+				document.getElementById('btBackToNormal').style.display = 'none';
+			} else if (opmode === 1) {
+				// Bluetooth Sink - highlight sink panel
+				btStartSource.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				btStartSink.classList.add('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				// Show back to normal section
+				document.getElementById('btBackToNormal').style.display = 'block';
+			} else if (opmode === 2) {
+				// Bluetooth Source - highlight source panel
+				btStartSink.classList.remove('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				btStartSource.classList.add('border', 'border-primary', 'border-3', 'rounded', 'p-3', 'bg-body-secondary');
+				// Show back to normal section
+				document.getElementById('btBackToNormal').style.display = 'block';
+			}
+		} function connect() {
 			socket = new WebSocket("ws://" + host + "/ws");
 			socket.onopen = function () {
 				clearInterval(pingInterval);
@@ -2143,6 +2280,9 @@
 					if (socketMsg.pong == 'pong') {
 						pong();
 					}
+				}
+				if ("opmode" in socketMsg) {
+					updateOperationModeIndicator(socketMsg.opmode);
 				}
 				if ("volume" in socketMsg) {
 					volumeSlider.setValue(parseInt(socketMsg.volume));
@@ -2272,12 +2412,15 @@
 				document.getElementById('neopixelConfig').setAttribute('data-visible', true);
 				$('#initBrightness').bootstrapSlider('setValue', ledSettings.initBrightness);
 				$('#nightBrightness').bootstrapSlider('setValue', ledSettings.nightBrightness);
+				$('#atmoBrightness').bootstrapSlider('setValue', ledSettings.atmoBrightness);
 				document.getElementById('led_numIndicator').value = ledSettings.numIndicator;
 				document.getElementById('led_numControl').value = ledSettings.numControl;
 				listControlColors(ledSettings.numControl, ledSettings.controlColors);
 				document.getElementById('led_idleDots').value = ledSettings.numIdleDots;
 				$('#led_hueStart').bootstrapSlider('setValue', ledSettings.hueStart);
 				$('#led_hueEnd').bootstrapSlider('setValue', ledSettings.hueEnd);
+				$('#led_hueAtmo').bootstrapSlider('setValue', ledSettings.hueAtmo);
+				$('#led_satAtmo').bootstrapSlider('setValue', ledSettings.satAtmo);
 				document.getElementById('led_dimStates').value = ledSettings.dimStates;
 				$('#led_offsetPause').prop('checked', ledSettings.offsetPause);
 				$('#led_reverseRotation').prop('checked', ledSettings.reverseRot);
@@ -2287,6 +2430,7 @@
 			let playlistSettings = settings.playlist;
 			if (playlistSettings) {
 				$("#playlistSortMode").val(playlistSettings.sortMode).change();
+				$("#playlistRecDepth").val(playlistSettings.recDepth).change();
 			}
 			// rotary encoder
 			let rotarySettings = settings.rotary;
@@ -2354,6 +2498,10 @@
 			if (mqttSettings) {
 				// todo: get the bootstrap sliders to work:
 				document.getElementById('nav-mqtt-tab').setAttribute('data-visible', true);
+				document.getElementById('mqttBaseTopic').value = mqttSettings.baseTopic;
+				document.getElementById('mqttBaseTopic').setAttribute('maxlength', mqttSettings.maxBaseTopicLength);
+				document.getElementById('mqttDeviceId').value = mqttSettings.deviceId;
+				document.getElementById('mqttDeviceId').setAttribute('maxlength', mqttSettings.maxDeviceIdLength);
 				document.getElementById('mqttEnable').checked = mqttSettings.enable;
 				document.getElementById('mqttClientId').value = mqttSettings.clientID;
 				document.getElementById('mqttClientId').setAttribute('maxlength', mqttSettings.maxClientIdLength);
@@ -2364,6 +2512,16 @@
 				document.getElementById('mqttPwd').value = mqttSettings.password;
 				document.getElementById('mqttPwd').setAttribute('maxlength', mqttSettings.maxPwdLength);
 				document.getElementById('mqttPort').value = mqttSettings.port;
+				// Hidden field with MAC without colons & uppercase for MQTT preview
+				var macField = document.getElementById('macAddress');
+				if (!macField) {
+					macField = document.createElement('input');
+					macField.type = 'hidden';
+					macField.id = 'macAddress';
+					document.getElementById('mqttConfig').appendChild(macField);
+				}
+				macField.value = mqttSettings.macAddressPlain;
+				if (typeof updateMqttTopicsPreview === 'function') updateMqttTopicsPreview();
 			}
 			// bluetooth
 			let btSettings = settings.bluetooth;
@@ -2371,6 +2529,12 @@
 				document.getElementById('nav-bt-tab').setAttribute('data-visible', true);
 				document.getElementById('btDeviceName').value = btSettings.deviceName;
 				document.getElementById('btPinCode').value = btSettings.pinCode;
+				// make BT commands visible in button command selects
+				document.querySelectorAll('[id*=cmdselect_], #modId').forEach(select => {
+					select.querySelectorAll('option[value="140"], option[value="141"], option[value="142"]').forEach(option => {
+						option.style.display = '';
+					});
+				});
 			}
 		}
 		async function resetSettings() {
@@ -2607,12 +2771,15 @@
 				"led": {
 					initBrightness: Number($('#initBrightness').val()),
 					nightBrightness: Number($('#nightBrightness').val()),
+					atmoBrightness: Number($('#atmoBrightness').val()),
 					numIndicator: Number(document.getElementById("led_numIndicator").value),
 					numControl: Number(document.getElementById("led_numControl").value),
 					controlColors: [],
 					numIdleDots: Number(document.getElementById("led_idleDots").value),
 					hueStart: Number($('#led_hueStart').val()),
 					hueEnd: Number($('#led_hueEnd').val()),
+					hueAtmo: Number($('#led_hueAtmo').val()),
+					satAtmo: Number($('#led_satAtmo').val()),
 					dimStates: Number(document.getElementById("led_dimStates").value),
 					offsetPause: $('#led_offsetPause').prop('checked'),
 					reverseRot: $('#led_reverseRotation').prop('checked'),
@@ -2626,7 +2793,8 @@
 					voltageCheckInterval: Number($('#voltageCheckInterval').val())
 				},
 				"playlist": {
-					sortMode: Number($('#playlistSortMode').val())
+					sortMode: Number($('#playlistSortMode').val()),
+					recDepth: Number($('#playlistRecDepth').val()),
 				},
 				"buttons": {
 					short0: Number(document.getElementById("cmdselect_short_0").value),
@@ -2712,6 +2880,8 @@
 				"mqtt": {
 					enable: val,
 					clientID: document.getElementById('mqttClientId').value,
+					deviceId: document.getElementById('mqttDeviceId').value,
+					baseTopic: document.getElementById('mqttBaseTopic').value,
 					server: document.getElementById('mqttServer').value,
 					username: document.getElementById('mqttUser').value,
 					password: document.getElementById('mqttPwd').value,
@@ -2720,6 +2890,21 @@
 			};
 			var myJSON = JSON.stringify(myObj);
 			socket.send(myJSON);
+
+			// If any MQTT setting changed, prompt user to restart to apply changes
+			try {
+				var old = (window.settings && window.settings.mqtt) ? window.settings.mqtt : {};
+				var nw = myObj.mqtt;
+				var fields = ['enable', 'clientID', 'deviceId', 'baseTopic', 'server', 'username', 'password', 'port'];
+				var changed = false;
+				for (var i = 0; i < fields.length; i++) {
+					var f = fields[i];
+					var ov = old[f];
+					var nv = nw[f];
+					if (String(ov) !== String(nv)) { changed = true; break; }
+				}
+				if (changed) showMqttRestartPrompt();
+			} catch (e) { console.log('mqttSettings compare error', e); }
 		}
 
 		function btSettings(clickedId) {
@@ -2739,6 +2924,81 @@
 				return str.substr(0, str.length - 1);
 			}
 			return str;
+		}
+
+		function buildMqttTopic(base, device, topic, isState) {
+			var dev = device && device.length ? device : (document.getElementById('mqttClientId') ? document.getElementById('mqttClientId').value : 'UNKNOWN');
+			var setterToken = 'set';
+			if (base && base.length) {
+				return base + '/' + dev + '/' + topic + (isState ? '' : '/' + setterToken);
+			} else {
+				return dev + '/' + topic + (isState ? '' : '/' + setterToken);
+			}
+		}
+
+		function updateMqttTopicsPreview() {
+			// Create preview UI if not present (helps when management.html wasn't updated)
+			var previewEl = document.getElementById('mqttTopicsPreview');
+			if (!previewEl) {
+				var field = document.createElement('fieldset');
+				field.className = 'mb-3';
+				var leg = document.createElement('legend');
+				leg.setAttribute('data-i18n', 'mqtt.topics.preview');
+				field.appendChild(leg);
+				previewEl = document.createElement('pre');
+				previewEl.id = 'mqttTopicsPreview';
+				previewEl.style.whiteSpace = 'pre-wrap';
+				field.appendChild(previewEl);
+				var port = document.getElementById('mqttPort');
+				if (port && port.parentNode) {
+					// Insert after the parent container of the port input
+					var parent = port.parentNode;
+					parent.parentNode.insertBefore(field, parent.nextSibling);
+				} else {
+					var cfg = document.getElementById('mqttConfig');
+					if (cfg) cfg.appendChild(field);
+					else document.body.appendChild(field);
+				}
+				if (typeof locI18Next !== 'undefined') locI18Next.translate([field]);
+			}
+			var base = document.getElementById('mqttBaseTopic') ? document.getElementById('mqttBaseTopic').value.trim() : '';
+			var device = document.getElementById('mqttDeviceId') ? document.getElementById('mqttDeviceId').value.trim() : '';
+			if (!device && document.getElementById('mqttClientId')) device = document.getElementById('mqttClientId').value.trim();
+
+			// Get MAC address and replace <MAC> placeholder. Use only hidden DOM field for MAC (upper-case, no colons).
+			var macAddress = document.getElementById('macAddress') ? document.getElementById('macAddress').value.trim().toUpperCase() : 'AABBCCDDEEFF';
+			device = device.replace(/<MAC>/gi, macAddress);
+
+			// Static list of known topics (mirrors firmware settings.h)
+			var commandTopics = ['sleep', 'rfid', 'trackcontrol', 'loudness', 'sleep_timer', 'lock_controls', 'repeatmode', 'led_brightness', 'ambient_light'];
+			var stateTopics = ['track', 'cover_changed', 'state', 'ipv4', 'pauseplay', 'playmode', 'wifi_rssi', 'software_revision'];
+
+			// Combine command and state topics
+			var allTopics = commandTopics.concat(stateTopics);
+
+			var lines = [];
+			commandTopics.forEach(function (val) {
+				var t = buildMqttTopic(base, device, val, false);
+				// Escape HTML to prevent <MAC> from being treated as HTML tag
+				lines.push('Command: ' + escapeHtml(val) + ' -&gt; ' + escapeHtml(t));
+			});
+			allTopics.forEach(function (val) {
+				var t = buildMqttTopic(base, device, val, true);
+				lines.push('State: ' + escapeHtml(val) + ' -&gt; ' + escapeHtml(t));
+			});
+			previewEl.innerHTML = lines.join('<br>') || 'No topics configured';
+		}
+
+		// Helper function to escape HTML
+		function escapeHtml(text) {
+			var map = {
+				'&': '&amp;',
+				'<': '&lt;',
+				'>': '&gt;',
+				'"': '&quot;',
+				"'": '&#039;'
+			};
+			return text.replace(/[&<>"']/g, function (m) { return map[m]; });
 		}
 
 		function rfidAssign(clickedId) {
@@ -2825,6 +3085,27 @@
 			};
 			var myJSON = JSON.stringify(myObj);
 			socket.send(myJSON);
+		}
+
+		function setOperationMode(mode) {
+			console.log("set operation mode: " + mode);
+			// Show modal immediately before sending request
+			tryRedirect();
+			$('.modal-title').text(i18next.t("restart"));
+			$('.modal-body').html(i18next.t("restartinfo"));
+			$(".modal-body").removeAttr("style");
+			new bootstrap.Modal(document.getElementById('modalInfo')).toggle();
+
+			// Send mode change request (device will restart immediately)
+			fetch('/mode', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ mode: mode })
+			}).catch(error => {
+				console.log('Device restarting, connection lost (expected):', error);
+			});
 		}
 
 		function executeCommand() {
@@ -2998,6 +3279,16 @@
 		$(document).ready(function () {
 			connect();
 			buildFileSystemTree("/");
+			// insert MQTT topics preview if not present
+			if ($('#mqttTopicsPreview').length === 0) {
+				var preview = $('<fieldset class="mb-3"><legend data-i18n="mqtt.topics.preview"></legend><pre id="mqttTopicsPreview" style="white-space:pre-wrap;"></pre></fieldset>');
+				$('#mqttConfig form .text-center').first().before(preview);
+			}
+			// Bind live update when relevant mqtt fields change
+			$('#mqttBaseTopic, #mqttDeviceId, #mqttClientId').off('input.mqttPreview').on('input.mqttPreview', function () {
+				if (typeof updateMqttTopicsPreview === 'function') updateMqttTopicsPreview();
+			});
+			if (typeof updateMqttTopicsPreview === 'function') updateMqttTopicsPreview();
 			$('#deleteSSIDModal').on('show.bs.modal', function (event) {
 				var ssid = $(event.relatedTarget).data('ssid')
 				$(this).find('.modal-title').text(i18next.t("wifi.delete.title"));
@@ -3015,6 +3306,8 @@
 				$(this).find('.btn-ok').attr('href', "javascript:deleteRFID('" + rfid + "')");
 			})
 			$('.openPopupInfo').on('click', function () {
+				// Reset modal buttons when modal is closed
+				$('#modalInfo').on('hidden.bs.modal', function () { $('#modalInfoRefresh').show(); $('#modalRestartNow').hide(); });
 				fetchInfo();
 				$('.modal-title').text(i18next.t("systeminfo.title"));
 				$('#modalInfoRefresh').on('click', fetchInfo);
@@ -3162,9 +3455,13 @@
 			const cmdElem = document.createElement('select');
 			const cmdNothing = addOption(cmdElem, 0);
 			cmdNothing.setAttribute('data-i18n', "settingsex.buttons.noaction");
-			const cmds = [170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 150, 151, 152, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111];
+			const cmds = [170, 171, 172, 173, 174, 184, 185, 175, 176, 177, 178, 179, 180, 181, 182, 183, 199, 130, 140, 141, 142, 150, 151, 152, 153, 120, 100, 101, 102, 103, 104, 105, 106, 107, 110, 111, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
 			for (const cmd of cmds) {
-				addOption(cmdElem, cmd);
+				const opt = addOption(cmdElem, cmd);
+				if ([140, 141, 142].includes(cmd)) {
+					// initially hide bluetooth commands, will be shown when bt is enabled
+					opt.style.display = 'none';
+				}
 			}
 
 			/* fill settingsex button commands */
@@ -3172,9 +3469,12 @@
 
 			/* The <select /> that houses all commands for the modification selectors */
 			const modElem = document.createElement('select');
-			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 0, 170, 171, 172, 173, 174, 180, 181];
+			const mods = [100, 179, 101, 102, 103, 104, 105, 106, 110, 111, 120, 130, 140, 141, 142, 150, 151, 152, 153, 0, 170, 171, 172, 173, 174, 184, 185, 180, 181, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250];
 			for (const mod of mods) {
-				addOption(modElem, mod);
+				const opt = addOption(modElem, mod);
+				if ([140, 141, 142].includes(mod)) {
+					opt.style.display = 'none';
+				}
 			}
 
 			/* fill command selectors at the control page and the rfid assignment */

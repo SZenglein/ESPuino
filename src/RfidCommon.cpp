@@ -85,7 +85,7 @@ void Rfid_PreferenceLookupHandler(void) {
 					}
 				}
 	#ifdef MQTT_ENABLE
-				publishMqtt(topicRfidState, gCurrentRfidTagId, false);
+				publishMqtt(topicRfid, gCurrentRfidTagId, false);
 	#endif
 
 	#ifdef BLUETOOTH_ENABLE
@@ -95,7 +95,7 @@ void Rfid_PreferenceLookupHandler(void) {
 				}
 	#endif
 
-				AudioPlayer_TrackQueueDispatcher(_file, _lastPlayPos, _playMode, _trackLastPlayed);
+				AudioPlayer_SetPlaylist(_file, _lastPlayPos, _playMode, _trackLastPlayed);
 			}
 		}
 	}
@@ -117,6 +117,7 @@ void Rfid_TaskPause(void) {
 }
 void Rfid_TaskResume(void) {
 #if defined(RFID_READER_ENABLED)
+	Rfid_TaskReset(); // Reset state machine to initial state
 	vTaskResume(rfidTaskHandle);
 #endif
 }

@@ -44,6 +44,8 @@
 			"offsetpause": "LED pause centre",
 			"huestart": "Début de la couleur",
 			"hueend": "Fin de la couleur",
+			"hueatmo": "Couleur d'ambiance",
+			"satatmo": "Saturation d'ambiance",
 			"dimmablestates": "Étapes à gradation",
 			"reverserotation": "Inversion du sens de rotation",
 			"offset": "Début de l'offset LED"
@@ -185,9 +187,12 @@
 					"2": "Piste unique (boucle)",
 					"12": "Piste unique d'un répertoire (aléatoire). Suivi par un mode veille.",
 					"3": "Livre audio",
+					"16": "Livre audio avec sous-répertoires (récursif)",
 					"4": "Livre audio (boucle)",
 					"5": "Toutes les pistes d'un répertoire (triées)",
+					"15": "Tous les titres d'un répertoire + sous-répertoires (triées, récursif)",
 					"6": "Toutes les pistes d'un répertoire (aléatoire)",
+					"17": "Tous les titres d'un répertoire + sous-répertoires (aléatoire, récursif)",
 					"7": "Toutes les pistes d'un répertoire (triées, boucle)",
 					"9": "Toutes les pistes d'un répertoire (aléatoire, boucle)",
 					"13": "Toutes les pistes d'un sous-répertoire aléatoire (triées)",
@@ -219,6 +224,7 @@
 					"150": "Activer FTP",
 					"151": "Annoncer l'adresse IP",
 					"152": "Annoncer l'heure actuelle",
+					"153": "Basculement de la lumière ambiante",
 					"0": "Supprimer l'assignation",
 					"170": "Basculer Lecture/Pause",
 					"171": "Piste précédente",
@@ -234,7 +240,19 @@
 					"181": "Reculer de n secondes",
 					"182": "Stop",
 					"183": "Redémarrer",
-					"199": "Affichage de la charge de travail (console)"
+					"184": "Passer au dossier suivant",
+					"185": "Passer au dossier précédent",
+					"199": "Affichage de la charge de travail (console)",
+					"241": "Jouez à la carte RFID virtuelle 01",
+					"242": "Jouez à la carte RFID virtuelle 02",
+					"243": "Jouez à la carte RFID virtuelle 03",
+					"244": "Jouez à la carte RFID virtuelle 04",
+					"245": "Jouez à la carte RFID virtuelle 05",
+					"246": "Jouez à la carte RFID virtuelle 06",
+					"247": "Jouez à la carte RFID virtuelle 07",
+					"248": "Jouez à la carte RFID virtuelle 08",
+					"249": "Jouez à la carte RFID virtuelle 09",
+					"250": "Jouez à la carte RFID virtuelle 10"
 				}
 			}
 		}
@@ -244,7 +262,7 @@
 		"enable": "Activer MQTT",
 		"clientId": {
 			"title": "Identifiant client MQTT",
-			"placeholder": "par exemple ESPuino",
+			"placeholder": "par exemple ESPuino-<MAC>",
 			"validation": ""
 		},
 		"server": {
@@ -266,6 +284,22 @@
 			"title": "Port MQTT",
 			"placeholder": "par exemple 1883",
 			"validation": ""
+		},
+		"baseTopic": {
+			"title": "Topic de base (optionnel)",
+			"placeholder": "p.ex. home/espuino",
+			"validation": ""
+		},
+		"deviceId": {
+			"title": "Identifiant de l'appareil",
+			"placeholder": "p.ex. ESPuino-<MAC>",
+			"validation": ""
+		},
+		"topicsPreview": "Sujets complets (aperçu)",
+		"restartNote": "Remarque : les modifications MQTT ne prennent effet qu'après le redémarrage de l'appareil.",
+		"restartPrompt": "Les paramètres MQTT ont été enregistrés. Redémarrer maintenant pour appliquer les modifications ?",
+		"topics": {
+			"preview": "Sujets complets (aperçu)"
 		}
 	},
 	"ftp": {
@@ -285,16 +319,24 @@
 		}
 	},
 	"bt": {
+		"normal": {
+			"title": "Quitter le mode Bluetooth",
+			"desc": "Retourne au mode normal avec fonctionnalité WiFi. La musique de la carte SD et les flux web peuvent être lus.",
+			"button": "Quitter le mode Bluetooth",
+			"indicator": "Mode WiFi (RSSI: {{rssi}} dBm)"
+		},
 		"sink": {
 			"title": "ESPuino en tant que haut-parleur Bluetooth",
-			"desc": "ESPuino est démarré en tant que haut-parleur Bluetooth. Après le passage à ce mode, l'interface web ne sera plus disponible jusqu'à ce que le système soit redémarré en mode normal.",
-			"button": "Démarrer en tant que haut-parleur Bluetooth"
+			"desc": "ESPuino est démarré en tant que haut-parleur Bluetooth.",
+			"button": "Démarrer en tant que haut-parleur Bluetooth",
+			"indicator": "Mode haut-parleur Bluetooth"
 		},
 		"source": {
 			"configtitle": "Paramètres du casque Bluetooth",
 			"title": "Connecter avec un casque Bluetooth",
-			"desc": "Le périphérique se connecte au casque Bluetooth spécifié. Après le passage à ce mode, l'interface web ne sera plus disponible jusqu'à ce que le système soit redémarré en mode normal.",
-			"button": "Démarrer en mode casque"
+			"desc": "Le périphérique se connecte au casque Bluetooth spécifié.",
+			"button": "Démarrer en mode casque",
+			"indicator": "Mode casque Bluetooth"
 		},
 		"device": {
 			"title": "Périphérique Bluetooth (casque)",
@@ -344,7 +386,8 @@
 		"neopixel": {
 			"title": "Neopixel (luminosité)",
 			"restart": "Après le redémarrage",
-			"nightmode": "Pour le mode nuit"
+			"nightmode": "Pour le mode nuit",
+			"atmomode": "Pour le mode ambiance"
 		},
 		"sleep": {
 			"title": "Veille profonde",
@@ -364,7 +407,8 @@
 			"sortMode": "Mode de tri pour la liste de lecture et le navigateur de fichiers",
 			"strcmp": "Tri standard",
 			"strnatcmp": "Naturel: sensible à la casse",
-			"strnatcasecmp": "Naturel: insensible à la casse"
+			"strnatcasecmp": "Naturel: insensible à la casse",
+			"recDepth": "Profondeur de récursion maximale lors de la génération de playlists récursives"
 		}
 	},
 	"tools": {

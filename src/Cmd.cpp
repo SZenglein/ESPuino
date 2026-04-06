@@ -19,13 +19,13 @@ static void Cmd_HandleSleepAction(bool enable, const char *enLogMsg, const char 
 	if (enable) {
 		Log_Println(enLogMsg, LOGLEVEL_INFO);
 #ifdef MQTT_ENABLE
-		publishMqtt(topicSleepTimerState, enMqttMsg, false);
+		publishMqtt(topicSleepTimer, enMqttMsg, false);
 #endif
 	} else {
 		System_DisableSleepTimer();
 		Log_Println(modificatorSleepd, LOGLEVEL_INFO);
 #ifdef MQTT_ENABLE
-		publishMqtt(topicSleepTimerState, "0", false);
+		publishMqtt(topicSleepTimer, "0", false);
 #endif
 	}
 }
@@ -37,12 +37,12 @@ void Cmd_Action(const uint16_t mod) {
 			if (System_AreControlsLocked()) {
 				Log_Println(modificatorAllButtonsLocked, LOGLEVEL_NOTICE);
 #ifdef MQTT_ENABLE
-				publishMqtt(topicLockControlsState, "ON", false);
+				publishMqtt(topicLockControls, "ON", false);
 #endif
 			} else {
 				Log_Println(modificatorAllButtonsUnlocked, LOGLEVEL_NOTICE);
 #ifdef MQTT_ENABLE
-				publishMqtt(topicLockControlsState, "OFF", false);
+				publishMqtt(topicLockControls, "OFF", false);
 #endif
 			}
 			System_IndicateOk();
@@ -155,7 +155,7 @@ void Cmd_Action(const uint16_t mod) {
 				}
 				gPlayProperties.repeatPlaylist = !gPlayProperties.repeatPlaylist;
 #ifdef MQTT_ENABLE
-				publishMqtt(topicRepeatModeState, static_cast<uint32_t>(AudioPlayer_GetRepeatMode()), false);
+				publishMqtt(topicRepeatMode, static_cast<uint32_t>(AudioPlayer_GetRepeatMode()), false);
 #endif
 				System_IndicateOk();
 			}
@@ -174,7 +174,7 @@ void Cmd_Action(const uint16_t mod) {
 				}
 				gPlayProperties.repeatCurrentTrack = !gPlayProperties.repeatCurrentTrack;
 #ifdef MQTT_ENABLE
-				publishMqtt(topicRepeatModeState, static_cast<uint32_t>(AudioPlayer_GetRepeatMode()), false);
+				publishMqtt(topicRepeatMode, static_cast<uint32_t>(AudioPlayer_GetRepeatMode()), false);
 #endif
 				System_IndicateOk();
 			}
@@ -184,6 +184,11 @@ void Cmd_Action(const uint16_t mod) {
 		case CMD_DIMM_LEDS_NIGHTMODE: {
 			Led_ToggleNightmode();
 			System_IndicateOk();
+			break;
+		}
+
+		case CMD_TOGGLE_AMBIENT_LIGHT: {
+			Led_ToggleAmbientLight();
 			break;
 		}
 
@@ -276,7 +281,7 @@ void Cmd_Action(const uint16_t mod) {
 
 		case CMD_PLAYPAUSE: {
 			if ((OPMODE_NORMAL == System_GetOperationMode()) || (OPMODE_BLUETOOTH_SOURCE == System_GetOperationMode())) {
-				AudioPlayer_TrackControlToQueueSender(PAUSEPLAY);
+				AudioPlayer_SetTrackControl(PAUSEPLAY);
 			} else {
 				Bluetooth_PlayPauseTrack();
 			}
@@ -285,7 +290,7 @@ void Cmd_Action(const uint16_t mod) {
 
 		case CMD_PREVTRACK: {
 			if ((OPMODE_NORMAL == System_GetOperationMode()) || (OPMODE_BLUETOOTH_SOURCE == System_GetOperationMode())) {
-				AudioPlayer_TrackControlToQueueSender(PREVIOUSTRACK);
+				AudioPlayer_SetTrackControl(PREVIOUSTRACK);
 			} else {
 				Bluetooth_PreviousTrack();
 			}
@@ -294,7 +299,7 @@ void Cmd_Action(const uint16_t mod) {
 
 		case CMD_NEXTTRACK: {
 			if ((OPMODE_NORMAL == System_GetOperationMode()) || (OPMODE_BLUETOOTH_SOURCE == System_GetOperationMode())) {
-				AudioPlayer_TrackControlToQueueSender(NEXTTRACK);
+				AudioPlayer_SetTrackControl(NEXTTRACK);
 			} else {
 				Bluetooth_NextTrack();
 			}
@@ -302,23 +307,33 @@ void Cmd_Action(const uint16_t mod) {
 		}
 
 		case CMD_FIRSTTRACK: {
-			AudioPlayer_TrackControlToQueueSender(FIRSTTRACK);
+			AudioPlayer_SetTrackControl(FIRSTTRACK);
 			break;
 		}
 
 		case CMD_LASTTRACK: {
-			AudioPlayer_TrackControlToQueueSender(LASTTRACK);
+			AudioPlayer_SetTrackControl(LASTTRACK);
+			break;
+		}
+
+		case CMD_NEXTFOLDER: {
+			AudioPlayer_SetTrackControl(NEXTFOLDER);
+			break;
+		}
+
+		case CMD_PREVFOLDER: {
+			AudioPlayer_SetTrackControl(PREVIOUSFOLDER);
 			break;
 		}
 
 		case CMD_VOLUMEINIT: {
-			AudioPlayer_VolumeToQueueSender(AudioPlayer_GetInitVolume(), true);
+			AudioPlayer_SetVolume(AudioPlayer_GetInitVolume(), true);
 			break;
 		}
 
 		case CMD_VOLUMEUP: {
 			if ((OPMODE_NORMAL == System_GetOperationMode()) || (OPMODE_BLUETOOTH_SOURCE == System_GetOperationMode())) {
-				AudioPlayer_VolumeToQueueSender(AudioPlayer_GetCurrentVolume() + 1, true);
+				AudioPlayer_SetVolume(AudioPlayer_GetCurrentVolume() + 1, true);
 			} else {
 				Bluetooth_SetVolume(AudioPlayer_GetCurrentVolume() + 1, true);
 			}
@@ -327,7 +342,7 @@ void Cmd_Action(const uint16_t mod) {
 
 		case CMD_VOLUMEDOWN: {
 			if ((OPMODE_NORMAL == System_GetOperationMode()) || (OPMODE_BLUETOOTH_SOURCE == System_GetOperationMode())) {
-				AudioPlayer_VolumeToQueueSender(AudioPlayer_GetCurrentVolume() - 1, true);
+				AudioPlayer_SetVolume(AudioPlayer_GetCurrentVolume() - 1, true);
 			} else {
 				Bluetooth_SetVolume(AudioPlayer_GetCurrentVolume() - 1, true);
 			}
@@ -364,7 +379,7 @@ void Cmd_Action(const uint16_t mod) {
 		}
 
 		case CMD_STOP: {
-			AudioPlayer_TrackControlToQueueSender(STOP);
+			AudioPlayer_SetTrackControl(STOP);
 			break;
 		}
 

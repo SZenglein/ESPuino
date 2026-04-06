@@ -11,9 +11,6 @@
 #include "Common.h"
 #include "ESPAsyncWebServer.h"
 #include "EnumUtils.h"
-#ifdef NEOPIXEL_ENABLE
-	#include <FastLED.h>
-#endif
 #include "Ftp.h"
 #include "HTMLbinary.h"
 #include "HallEffectSensor.h"
@@ -91,6 +88,8 @@ static void handleDeleteRFIDRequest(AsyncWebServerRequest *request);
 static void handleGetInfo(AsyncWebServerRequest *request);
 static void handleGetSettings(AsyncWebServerRequest *request);
 static void handlePostSettings(AsyncWebServerRequest *request, JsonVariant &json);
+static void handleGetOperationMode(AsyncWebServerRequest *request);
+static void handlePostOperationMode(AsyncWebServerRequest *request, JsonVariant &json);
 static void handleDebugRequest(AsyncWebServerRequest *request);
 
 static void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
@@ -445,7 +444,7 @@ void webserverStart(void) {
 
 				if (!index) {
 					// pause some tasks to get more free CPU time for the upload
-					vTaskSuspend(AudioTaskHandle);
+					Audio_TaskPause();
 					Led_TaskPause();
 					Rfid_TaskPause();
 					Update.begin();
@@ -459,7 +458,7 @@ void webserverStart(void) {
 					Update.end(true);
 					// resume the paused tasks
 					Led_TaskResume();
-					vTaskResume(AudioTaskHandle);
+					Audio_TaskResume();
 					Rfid_TaskResume();
 					Log_Println(fwEnd, LOGLEVEL_NOTICE);
 					if (Update.hasError()) {
@@ -501,7 +500,7 @@ void webserverStart(void) {
 			// show tasklist
 			response->println("Tasklist:<div class='text'><pre>");
 			response->println("Taskname\tState\tPrio\tStack\tNum\tCore");
-			char *pbuffer = (char *) calloc(2048, 1);
+			char *pbuffer = x_calloc(2048, 1);
 			vTaskList(pbuffer);
 			response->println(pbuffer);
 			response->println("</pre></div><br><br>Runtime statistics:<div class='text'><pre>");
@@ -607,6 +606,9 @@ void webserverStart(void) {
 		// ESPuino settings
 		wServer.on("/settings", HTTP_GET, handleGetSettings);
 		wServer.addHandler(new AsyncCallbackJsonWebHandler("/settings", handlePostSettings));
+		// operation mode
+		wServer.on("/mode", HTTP_GET, handleGetOperationMode);
+		wServer.addHandler(new AsyncCallbackJsonWebHandler("/mode", handlePostOperationMode));
 		// Init HallEffectSensor Value
 #ifdef HALLEFFECT_SENSOR_ENABLE
 		wServer.on("/inithalleffectsensor", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -682,7 +684,7 @@ bool JSONToSettings(JsonObject doc) {
 			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "equalizer");
 			return false;
 		} else {
-			AudioPlayer_EqualizerToQueueSender(_gainLowPass, _gainBandPass, _gainHighPass);
+			AudioPlayer_SetEqualizer(_gainLowPass, _gainBandPass, _gainHighPass);
 		}
 	}
 	if (doc["wifi"].is<JsonObject>()) {
@@ -702,12 +704,15 @@ bool JSONToSettings(JsonObject doc) {
 		JsonObject ledObj = doc["led"];
 		bool success = (gPrefsSettings.putUChar("iLedBrightness", ledObj["initBrightness"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("nLedBrightness", ledObj["nightBrightness"].as<uint8_t>()) != 0);
+		success = success && (gPrefsSettings.putUChar("aLedBrightness", ledObj["atmoBrightness"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("numIndicator", ledObj["numIndicator"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("numControl", ledObj["numControl"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("numIdleDots", ledObj["numIdleDots"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putBool("offsetPause", ledObj["offsetPause"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putShort("hueStart", ledObj["hueStart"].as<int16_t>()) != 0);
 		success = success && (gPrefsSettings.putShort("hueEnd", ledObj["hueEnd"].as<int16_t>()) != 0);
+		success = success && (gPrefsSettings.putShort("hueAtmo", ledObj["hueAtmo"].as<int16_t>()) != 0);
+		success = success && (gPrefsSettings.putShort("satAtmo", ledObj["satAtmo"].as<int16_t>()) != 0);
 		success = success && (gPrefsSettings.putUChar("dimStates", ledObj["dimStates"].as<uint8_t>()) != 0);
 		success = success && (gPrefsSettings.putBool("ledReverseRot", ledObj["reverseRot"].as<bool>()) != 0);
 		success = success && (gPrefsSettings.putUChar("ledOffset", ledObj["offsetStart"].as<uint8_t>()) != 0);
@@ -790,6 +795,10 @@ bool JSONToSettings(JsonObject doc) {
 			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "playlist");
 			return false;
 		}
+		if (!SdCard_SetMaxRecursionDepth(doc["playlist"]["recDepth"].as<uint8_t>())) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "playlist");
+			return false;
+		}
 	}
 	if (doc["ftp"].is<JsonObject>()) {
 		const char *_ftpUser = doc["ftp"]["username"];
@@ -811,19 +820,58 @@ bool JSONToSettings(JsonObject doc) {
 	if (doc["mqtt"].is<JsonObject>()) {
 		uint8_t _mqttEnable = doc["mqtt"]["enable"].as<uint8_t>();
 		const char *_mqttClientId = doc["mqtt"]["clientID"];
+		const char *_mqttDeviceId = doc["mqtt"]["deviceId"];
+		const char *_mqttBaseTopic = doc["mqtt"]["baseTopic"];
 		const char *_mqttServer = doc["mqtt"]["server"];
 		const char *_mqttUser = doc["mqtt"]["username"];
 		const char *_mqttPwd = doc["mqtt"]["password"];
 		uint16_t _mqttPort = doc["mqtt"]["port"].as<uint16_t>();
 
+		// Sanitize and validate inputs
+		String mqttClientIdStr = String(_mqttClientId);
+		String mqttDeviceIdStr = String(_mqttDeviceId);
+		String mqttBaseTopicStr = String(_mqttBaseTopic);
+
+		// sanitize base topic (trim slashes and whitespace)
+		mqttBaseTopicStr.trim();
+		while (mqttBaseTopicStr.startsWith("/")) {
+			mqttBaseTopicStr = mqttBaseTopicStr.substring(1);
+		}
+		while (mqttBaseTopicStr.endsWith("/")) {
+			mqttBaseTopicStr = mqttBaseTopicStr.substring(0, mqttBaseTopicStr.length() - 1);
+		}
+		if (mqttBaseTopicStr.length() >= mqttBaseTopicLength) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.baseTopic too long");
+			return false;
+		}
+
+		// validate device id (must not be empty and must not contain '/')
+		mqttDeviceIdStr.trim();
+		if (mqttDeviceIdStr.length() == 0) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.deviceId empty");
+			return false;
+		}
+		if (mqttDeviceIdStr.indexOf('/') >= 0) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.deviceId contains invalid char '/'");
+			return false;
+		}
+		if (mqttDeviceIdStr.length() >= mqttDeviceIdLength) {
+			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt.deviceId too long");
+			return false;
+		}
+
+		// store sanitized values
 		gPrefsSettings.putUChar("enableMQTT", _mqttEnable);
-		gPrefsSettings.putString("mqttClientId", (String) _mqttClientId);
+		gPrefsSettings.putString("mqttClientId", mqttClientIdStr);
+		gPrefsSettings.putString("mqttDeviceId", mqttDeviceIdStr);
+		gPrefsSettings.putString("mqttBaseTopic", mqttBaseTopicStr);
 		gPrefsSettings.putString("mqttServer", (String) _mqttServer);
 		gPrefsSettings.putString("mqttUser", (String) _mqttUser);
 		gPrefsSettings.putString("mqttPassword", (String) _mqttPwd);
 		gPrefsSettings.putUInt("mqttPort", _mqttPort);
 
-		if ((gPrefsSettings.getUChar("enableMQTT", 99) != _mqttEnable) || (!String(_mqttServer).equals(gPrefsSettings.getString("mqttServer", "-1")))) {
+		// verify writes (include deviceId and baseTopic)
+		if ((gPrefsSettings.getUChar("enableMQTT", 99) != _mqttEnable) || (!String(_mqttServer).equals(gPrefsSettings.getString("mqttServer", "-1"))) || (!mqttBaseTopicStr.equals(gPrefsSettings.getString("mqttBaseTopic", "-1"))) || (!mqttDeviceIdStr.equals(gPrefsSettings.getString("mqttDeviceId", "-1")))) {
 			Log_Printf(LOGLEVEL_ERROR, webSaveSettingsError, "mqtt");
 			return false;
 		}
@@ -886,7 +934,7 @@ bool JSONToSettings(JsonObject doc) {
 		const JsonObject controlsObj = doc["controls"].as<JsonObject>();
 		if (controlsObj["set_volume"].is<uint8_t>()) {
 			uint8_t new_vol = controlsObj["set_volume"].as<uint8_t>();
-			AudioPlayer_VolumeToQueueSender(new_vol, true);
+			AudioPlayer_SetVolume(new_vol, true);
 		}
 		if (controlsObj["action"].is<uint8_t>()) {
 			uint8_t cmd = controlsObj["action"].as<uint8_t>();
@@ -971,6 +1019,7 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		JsonObject ledObj = obj["led"].to<JsonObject>();
 		ledObj["initBrightness"].set(gPrefsSettings.getUChar("iLedBrightness", 0));
 		ledObj["nightBrightness"].set(gPrefsSettings.getUChar("nLedBrightness", 0));
+		ledObj["atmoBrightness"].set(gPrefsSettings.getUChar("aLedBrightness", 0));
 		ledObj["numIndicator"].set(gPrefsSettings.getUChar("numIndicator", NUM_INDICATOR_LEDS));
 		uint8_t numControlLeds = gPrefsSettings.getUChar("numControl", NUM_CONTROL_LEDS);
 		ledObj["numControl"].set(numControlLeds);
@@ -993,6 +1042,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		ledObj["offsetPause"].set(gPrefsSettings.getBool("offsetPause", OFFSET_PAUSE_LEDS));
 		ledObj["hueStart"].set(gPrefsSettings.getShort("hueStart", PROGRESS_HUE_START));
 		ledObj["hueEnd"].set(gPrefsSettings.getShort("hueEnd", PROGRESS_HUE_END));
+		ledObj["hueAtmo"].set(gPrefsSettings.getShort("hueAtmo", ATMO_HUE));
+		ledObj["satAtmo"].set(gPrefsSettings.getShort("satAtmo", ATMO_SATURATION));
 		ledObj["dimStates"].set(gPrefsSettings.getUChar("dimStates", DIMMABLE_STATES));
 		ledObj["reverseRot"].set(gPrefsSettings.getBool("ledReverseRot", false));
 		ledObj["offsetStart"].set(gPrefsSettings.getUChar("ledOffset", 0));
@@ -1011,7 +1062,7 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		buttonsObj["long1"].set(gPrefsSettings.getUChar("btnLong1", BUTTON_1_LONG));
 		buttonsObj["long2"].set(gPrefsSettings.getUChar("btnLong2", BUTTON_2_LONG));
 		buttonsObj["long3"].set(gPrefsSettings.getUChar("btnLong3", BUTTON_3_LONG));
-		buttonsObj["long4"].set(gPrefsSettings.getUChar("bttLong4", BUTTON_4_LONG));
+		buttonsObj["long4"].set(gPrefsSettings.getUChar("btnLong4", BUTTON_4_LONG));
 		buttonsObj["long5"].set(gPrefsSettings.getUChar("btnLong5", BUTTON_5_LONG));
 		buttonsObj["multi01"].set(gPrefsSettings.getUChar("btnMulti01", BUTTON_MULTI_01));
 		buttonsObj["multi02"].set(gPrefsSettings.getUChar("btnMulti02", BUTTON_MULTI_02));
@@ -1038,6 +1089,7 @@ static void settingsToJSON(JsonObject obj, const String section) {
 	if ((section == "") || (section == "playlist")) {
 		JsonObject playlistObj = obj["playlist"].to<JsonObject>();
 		playlistObj["sortMode"] = EnumUtils::underlying_value(AudioPlayer_GetPlaylistSortMode());
+		playlistObj["recDepth"] = SdCard_GetMaxRecursionDepth();
 	}
 #ifdef BATTERY_MEASURE_ENABLE
 	if ((section == "") || (section == "battery")) {
@@ -1080,12 +1132,15 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		JsonObject ledSettings = defaultsObj["led"].to<JsonObject>();
 		ledSettings["initBrightness"].set(16u); // LED_INITIAL_BRIGHTNESS
 		ledSettings["nightBrightness"].set(2u); // LED_INITIAL_NIGHT_BRIGHTNESS
+		ledSettings["atmoBrightness"].set(30u); // LED_INITIAL_NIGHT_BRIGHTNESS
 		ledSettings["numIndicator"].set(NUM_INDICATOR_LEDS); // NUM_INDICATOR_LEDS
 		ledSettings["numControl"].set(NUM_CONTROL_LEDS); // NUM_CONTROL_LEDS
 		ledSettings["numIdleDots"].set(NUM_LEDS_IDLE_DOTS); // NUM_LEDS_IDLE_DOTS
 		ledSettings["offsetPause"].set(OFFSET_PAUSE_LEDS); // OFFSET_PAUSE_LEDS
 		ledSettings["hueStart"].set(PROGRESS_HUE_START); // PROGRESS_HUE_START
 		ledSettings["hueEnd"].set(PROGRESS_HUE_END); // PROGRESS_HUE_END
+		ledSettings["hueAtmo"].set(ATMO_HUE);
+		ledSettings["satAtmo"].set(ATMO_SATURATION);
 		ledSettings["dimStates"].set(DIMMABLE_STATES); // DIMMABLE_STATES
 	#ifdef NEOPIXEL_REVERSE_ROTATION
 		ledSettings["reverseRot"].set(true);
@@ -1165,7 +1220,13 @@ static void settingsToJSON(JsonObject obj, const String section) {
 	if ((section == "") || (section == "mqtt")) {
 		JsonObject mqttObj = obj["mqtt"].to<JsonObject>();
 		mqttObj["enable"].set(Mqtt_IsEnabled());
+		String macPlain = Wlan_GetMacAddress(); // returns AA:BB:CC:DD:EE:FF or empty
+		macPlain.replace(":", "");
+		macPlain.toUpperCase();
+		mqttObj["macAddressPlain"] = macPlain;
 		mqttObj["clientID"] = gPrefsSettings.getString("mqttClientId", "-1");
+		mqttObj["deviceId"] = gPrefsSettings.getString("mqttDeviceId", "-1");
+		mqttObj["baseTopic"] = gPrefsSettings.getString("mqttBaseTopic", "-1");
 		mqttObj["server"] = gPrefsSettings.getString("mqttServer", "-1");
 		mqttObj["port"].set(gPrefsSettings.getUInt("mqttPort", 0));
 		mqttObj["username"] = gPrefsSettings.getString("mqttUser", "-1");
@@ -1174,6 +1235,8 @@ static void settingsToJSON(JsonObject obj, const String section) {
 		mqttObj["maxPwdLength"].set(mqttPasswordLength - 1);
 		mqttObj["maxClientIdLength"].set(mqttClientIdLength - 1);
 		mqttObj["maxServerLength"].set(mqttServerLength - 1);
+		mqttObj["maxBaseTopicLength"].set(mqttBaseTopicLength - 1);
+		mqttObj["maxDeviceIdLength"].set(mqttDeviceIdLength - 1);
 	}
 #endif
 // Bluetooth
@@ -1310,6 +1373,27 @@ void handlePostSettings(AsyncWebServerRequest *request, JsonVariant &json) {
 	}
 }
 
+// handle get operation mode
+void handleGetOperationMode(AsyncWebServerRequest *request) {
+	AsyncJsonResponse *response = new AsyncJsonResponse(false);
+	JsonObject object = response->getRoot();
+	object["mode"] = System_GetOperationMode();
+	response->setLength();
+	request->send(response);
+}
+
+// handle post operation mode
+void handlePostOperationMode(AsyncWebServerRequest *request, JsonVariant &json) {
+	const JsonObject &jsonObj = json.as<JsonObject>();
+	if (jsonObj["mode"].is<uint8_t>()) {
+		uint8_t mode = jsonObj["mode"].as<uint8_t>();
+		System_SetOperationMode(mode);
+		request->send(200);
+	} else {
+		request->send(400, "text/plain; charset=utf-8", "missing 'mode' parameter");
+	}
+}
+
 // handle debug request
 // returns memory and task runtime information as JSON
 void handleDebugRequest(AsyncWebServerRequest *request) {
@@ -1408,6 +1492,8 @@ void Web_SendWebsocketData(uint32_t client, WebsocketCodeType code) {
 		object["rssi"] = Wlan_GetRssi();
 		// todo: battery percent + loading status +++
 		// object["battery"] = Battery_GetVoltage();
+	} else if (code == WebsocketCodeType::OperationMode) {
+		object["opmode"] = System_GetOperationMode();
 	} else if (code == WebsocketCodeType::TrackInfo) {
 		JsonObject entry = object["trackinfo"].to<JsonObject>();
 		entry["pausePlay"] = gPlayProperties.pausePlay;
@@ -1464,6 +1550,8 @@ void onWebsocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
 	if (type == WS_EVT_CONNECT) {
 		// client connected
 		Log_Printf(LOGLEVEL_DEBUG, "ws[%s][%u] connect", server->url(), client->id());
+		// Send initial operation mode and RSSI to newly connected client
+		Web_SendWebsocketData(client->id(), WebsocketCodeType::OperationMode);
 		// client->printf("Hello Client %u :)", client->id());
 		// client->ping();
 	} else if (type == WS_EVT_DISCONNECT) {
@@ -1642,7 +1730,7 @@ void explorerHandleFileStorageTask(void *parameter) {
 	uploadFile.setBufferSize(chunk_size);
 
 	// pause some tasks to get more free CPU time for the upload
-	vTaskSuspend(AudioTaskHandle);
+	Audio_TaskPause();
 	Led_TaskPause();
 	Rfid_TaskPause();
 
@@ -1681,7 +1769,7 @@ void explorerHandleFileStorageTask(void *parameter) {
 				free(parameter);
 				// resume the paused tasks
 				Led_TaskResume();
-				vTaskResume(AudioTaskHandle);
+				Audio_TaskResume();
 				Rfid_TaskResume();
 				// destroy double buffer memory, since the upload was interrupted
 				destroyDoubleBuffer();
@@ -1696,7 +1784,7 @@ void explorerHandleFileStorageTask(void *parameter) {
 	free(parameter);
 	// resume the paused tasks
 	Led_TaskResume();
-	vTaskResume(AudioTaskHandle);
+	Audio_TaskResume();
 	Rfid_TaskResume();
 	// send signal to upload function to terminate
 	xSemaphoreGive(explorerFileUploadFinished);
@@ -1712,13 +1800,18 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 #endif
 
 	File root;
+	bool isRoot = false;
 	if (request->hasParam("path")) {
 		const AsyncWebParameter *param;
 		param = request->getParam("path");
 		const char *filePath = param->value().c_str();
+		if (strcmp(filePath, "/") == 0) {
+			isRoot = true;
+		}
 		root = gFSystem.open(filePath);
 	} else {
 		root = gFSystem.open("/");
+		isRoot = true;
 	}
 
 	if (!root) {
@@ -1733,6 +1826,17 @@ void explorerHandleListRequest(AsyncWebServerRequest *request) {
 
 	AsyncJsonResponse *response = new AsyncJsonResponse(true);
 	JsonArray obj = response->getRoot();
+
+	// For root directory, add volume label as first element if available
+	if (isRoot) {
+		String volumeLabel = SdCard_GetVolumeLabel();
+		if (volumeLabel.length() > 0) {
+			JsonObject labelEntry = obj.add<JsonObject>();
+			labelEntry["name"] = volumeLabel;
+			labelEntry["root"] = "sd";
+		}
+	}
+
 	bool isDir = false;
 	String MyfileName = root.getNextFileName(&isDir);
 	while (MyfileName != "") {
@@ -1926,7 +2030,7 @@ void explorerHandleAudioRequest(AsyncWebServerRequest *request) {
 		if (gPlayProperties.dontAcceptRfidTwice) {
 			Rfid_ResetOldRfid();
 		}
-		AudioPlayer_TrackQueueDispatcher(filePath, 0, playMode, 0);
+		AudioPlayer_SetPlaylist(filePath, 0, playMode, 0);
 	} else {
 		Log_Println("AUDIO: No path variable set", LOGLEVEL_ERROR);
 	}
@@ -2369,6 +2473,9 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 			}
 		return;
 	}
+	if (gPlayProperties.currentTrackNumber >= gPlayProperties.playlist->size()) {
+		return;
+	}
 	const char *coverFileName = gPlayProperties.playlist->at(gPlayProperties.currentTrackNumber);
 	String decodedCover = "/.cache";
 	decodedCover.concat(coverFileName);
@@ -2379,37 +2486,51 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 	} else {
 		coverFile = gFSystem.open(coverFileName, FILE_READ);
 	}
-	char mimeType[255] {0};
+	char mimeType[256] {0};
 	char fileType[4];
 	coverFile.readBytes(fileType, 4);
 	if (strncmp(fileType, "ID3", 3) == 0) { // mp3 (ID3v2) Routine
 		// seek to start position
 		coverFile.seek(gPlayProperties.coverFilePos);
 		uint8_t encoding = coverFile.read();
-		// mime-type (null terminated)
-		for (uint8_t i = 0u; i < 255; i++) {
-			mimeType[i] = coverFile.read();
-			if (uint8_t(mimeType[i]) == 0) {
-				break;
+		if (fileType[3] == 0x02) {
+			// image format (3 Bytes) for ID3v2.2
+			coverFile.readBytes(mimeType, 3);
+			if (strcmp(mimeType, "JPG") == 0) {
+				strcpy(mimeType, "image/jpeg");
+			} else if (strcmp(mimeType, "PNG") == 0) {
+				strcpy(mimeType, "image/png");
+			} else if (strcmp(mimeType, "-->") != 0) {
+				strcpy(mimeType, "application/octet-stream");
+			}
+		} else {
+			// mime-type (null terminated) for ID3v2.3 and ID3v2.4
+			for (uint8_t i = 0u; i < 255; i++) {
+				mimeType[i] = coverFile.read();
+				if (uint8_t(mimeType[i]) == 0) {
+					break;
+				}
 			}
 		}
 		// skip image type (1 Byte)
 		coverFile.read();
 		// skip description (null terminated)
-		for (uint8_t i = 0u; i < 255; i++) {
-			if (uint8_t(coverFile.read()) == 0) {
-				break;
-			}
-		}
-		// UTF-16 and UTF-16BE are terminated with an extra 0
-		if (encoding == 1 || encoding == 2) {
-			coverFile.read();
+		if (encoding == 0 || encoding == 3) { // ISO-8859-1 and UTF-8: 00 terminated
+			while (coverFile.read() != 0) { }
+		} else if (encoding == 1 || encoding == 2) { // UTF-16 and UTF-16BE: 00 00 terminated
+			while ((coverFile.read() | (coverFile.read() << 8)) != 0) { }
 		}
 	} else if (strncmp(fileType, "fLaC", 4) == 0) { // flac Routine
 		uint32_t length = 0; // length of strings: MIME type, description of the picture, binary picture data
-		coverFile.seek(gPlayProperties.coverFilePos + 7); // pass cover filesize (3 Bytes) and picture type (4 Bytes)
+		coverFile.seek(gPlayProperties.coverFilePos + 4); // pass only picture type (4 Bytes) (audioI2S points to METADATA_BLOCK_PICTURE since 6241daa)
 		for (int i = 0; i < 4; ++i) { // length of mime type string
 			length = (length << 8) | coverFile.read();
+		}
+		if (length > 255) {
+			Log_Printf(LOGLEVEL_ERROR, "Unexpected MIME type string length (%u > 255). Possible corrupted cover image or wrong coverFilePos (%u). Aborting extraction.", length, gPlayProperties.coverFilePos);
+			request->send(200, "image/svg+xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" transform=\"scale (0.6)\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1664 224v1120q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-537l-768 237v709q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-967q0-31 19-56.5t49-35.5l832-256q12-4 28-4 40 0 68 28t28 68z\"/></svg>");
+			coverFile.close();
+			return;
 		}
 		for (uint8_t i = 0u; i < length; i++) {
 			mimeType[i] = coverFile.read();
@@ -2432,9 +2553,15 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 		coverFile.seek(8);
 		coverFile.readBytes(fileType, 3);
 		if (strncmp(fileType, "M4A", 3) == 0) {
-			// M4A header found, seek to image start position. Image length adjustment seems to be not needed, every browser shows cover image correct!
-			coverFile.seek(gPlayProperties.coverFilePos + 8);
+			strcpy(mimeType, "application/octet-stream");
+			coverFile.seek(gPlayProperties.coverFilePos);
 		}
+	}
+	if (strncmp(mimeType, "image", 5) != 0 && strncmp(mimeType, "application/octet-stream", 24) != 0) {
+		Log_Printf(LOGLEVEL_ERROR, "Unexpected MIME type (%s). Possible corrupted cover image or wrong coverFilePos (%u). Aborting extraction.", mimeType, gPlayProperties.coverFilePos);
+		request->send(200, "image/svg+xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" transform=\"scale (0.6)\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1664 224v1120q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-537l-768 237v709q0 50-34 89t-86 60.5-103.5 32-96.5 10.5-96.5-10.5-103.5-32-86-60.5-34-89 34-89 86-60.5 103.5-32 96.5-10.5q105 0 192 39v-967q0-31 19-56.5t49-35.5l832-256q12-4 28-4 40 0 68 28t28 68z\"/></svg>");
+		coverFile.close();
+		return;
 	}
 	Log_Printf(LOGLEVEL_NOTICE, "serve cover image (%s): %s", mimeType, coverFile.name());
 
@@ -2455,6 +2582,6 @@ static void handleCoverImageRequest(AsyncWebServerRequest *request) {
 		index += willWrite;
 		return willWrite;
 	});
-	response->addHeader("Cache Control", "no-cache, must-revalidate");
+	response->addHeader("Cache-Control", "no-cache, must-revalidate");
 	request->send(response);
 }

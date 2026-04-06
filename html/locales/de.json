@@ -44,6 +44,8 @@
 			"offsetpause": "Pausen-LEDs zentrieren",
 			"huestart": "Farbton-Start (Playlist-Fortschritt)",
 			"hueend": "Farbton-Ende (Playlist-Fortschritt)",
+			"hueatmo": "Farbton-Atmolight",
+			"satatmo": "Sättigung-Atmolight",
 			"dimmablestates": "Dimmbare Stufen",
 			"reverserotation": "Drehrichtung umkehren",
 			"offset": "Offset Start-LED"
@@ -183,13 +185,16 @@
 				"mode": {
 					"1": "Einzelner Titel",
 					"2": "Einzelner Titel (Endlosschleife)",
-					"12": "Einzelner Titel eines Verzeichnis (zufällig). Danach schlafen.",
+					"12": "Einzelner Titel eines Verzeichnisses (zufällig). Danach schlafen.",
 					"3": "Hörbuch",
+					"16": "Hörbuch mit Unterverzeichnissen (rekursiv)",
 					"4": "Hörbuch (Endlosschleife)",
-					"5": "Alle Titel eines Verzeichnis (sortiert)",
-					"6": "Alle Titel eines Verzeichnis (zufällig)",
-					"7": "Alle Titel eines Verzeichnis (sortiert, Endlosschleife)",
-					"9": "Alle Titel eines Verzeichnis (zufällig, Endlosschleife)",
+					"5": "Alle Titel eines Verzeichnisses (sortiert)",
+					"15": "Alle Titel eines Verzeichnisses + Unterverzeichnisse (rekursiv, sortiert)",
+					"6": "Alle Titel eines Verzeichnisses (zufällig)",
+					"17": "Alle Titel eines Verzeichnisses + Unterverzeichnisse (rekursiv, zufällig)",
+					"7": "Alle Titel eines Verzeichnisses (sortiert, Endlosschleife)",
+					"9": "Alle Titel eines Verzeichnisses (zufällig, Endlosschleife)",
 					"13": "Alle Titel aus einem zufälligen Unterverzeichnis (sortiert)",
 					"14": "Alle Titel aus einem zufälligen Unterverzeichnis (zufällig)",
 					"8": "Webradio",
@@ -219,6 +224,7 @@
 					"150": "Aktiviere FTP",
 					"151": "IP-Adresse ansagen",
 					"152": "Uhrzeit ansagen",
+					"153": "Ambient Light umschalten",
 					"0": "Lösche Zuordnung",
 					"170": "Play/Pause",
 					"171": "Vorheriger Titel",
@@ -234,23 +240,51 @@
 					"181": "Springe rückwärts (n Sekunden)",
 					"182": "Stop",
 					"183": "Neustart",
-					"199": "Taskauslastung anzeigen (Konsole)"
+					"184": "Springe zum nächsten Ordner",
+					"185": "Springe zum vorherigen Ordner",
+					"199": "Taskauslastung anzeigen (Konsole)",
+					"241": "Spiele virtuelle RFID-Karte 01",
+					"242": "Spiele virtuelle RFID-Karte 02",
+					"243": "Spiele virtuelle RFID-Karte 03",
+					"244": "Spiele virtuelle RFID-Karte 04",
+					"245": "Spiele virtuelle RFID-Karte 05",
+					"246": "Spiele virtuelle RFID-Karte 06",
+					"247": "Spiele virtuelle RFID-Karte 07",
+					"248": "Spiele virtuelle RFID-Karte 08",
+					"249": "Spiele virtuelle RFID-Karte 09",
+					"250": "Spiele virtuelle RFID-Karte 10"
 				}
 			}
 		}
 	},
-		"mqtt": {
+	"mqtt": {
 		"title": "MQTT-Einstellungen",
 		"enable": "MQTT aktivieren",
 		"clientId": {
 			"title": "MQTT-ClientId",
-			"placeholder": "z.B. ESPuino",
+			"placeholder": "z.B. ESPuino-<MAC>",
 			"validation": ""
 		},
 		"server": {
 			"title": "MQTT-Server",
 			"placeholder": "f.e. 192.168.2.89",
 			"validation": ""
+		},
+		"baseTopic": {
+			"title": "Basis-Topic (optional)",
+			"placeholder": "z.B. home/espuino",
+			"validation": ""
+		},
+		"deviceId": {
+			"title": "Geräte-ID",
+			"placeholder": "z.B. ESPuino-<MAC>",
+			"validation": ""
+		},
+		"topicsPreview": "Vollständige Topics (Vorschau)",
+		"restartNote": "Hinweis: MQTT-Änderungen werden erst nach einem Neustart des Geräts wirksam.",
+		"restartPrompt": "MQTT-Einstellungen wurden gespeichert. Jetzt neu starten, um die Änderungen anzuwenden?",
+		"topics": {
+			"preview": "Vollständige Topics (Vorschau)"
 		},
 		"user": {
 			"title": "MQTT-Benutzername (optional)",
@@ -285,16 +319,24 @@
 		}
 	},
 	"bt": {
+		"normal": {
+			"title": "Bluetooth-Modus verlassen",
+			"desc": "Kehrt zum normalen Modus mit WiFi-Funktionalität zurück. Musik von SD-Karte und Webstreams können abgespielt werden.",
+			"button": "Bluetooth-Modus verlassen",
+			"indicator": "WiFi-Modus (RSSI: {{rssi}} dBm)"
+		},
 		"sink": {
 			"title": "ESPuino als Bluetooth-Lautsprecher",
-			"desc": "ESPuino wird als Bluetooth-Lautsprecher gestartet. Nach dem Wechsel in diesen Modus wird die Web-Schnittstelle nicht mehr zur Verfügung stehen, bis das System im normalen Modus neu gestartet wird.",
-			"button": "Als Bluetooth-Lautsprecher starten"
+			"desc": "ESPuino wird als Bluetooth-Lautsprecher gestartet.",
+			"button": "Als Bluetooth-Lautsprecher starten",
+			"indicator": "Bluetooth-Lautsprecher Modus"
 		},
 		"source": {
 			"configtitle": "Bluetooth-Kopfhörer Einstellungen",
 			"title": "Mit Bluetooth-Kopfhörer verbinden",
-			"desc": "Das Gerät verbindet sich mit dem angegebenen Bluetooth-Kopfhörer. Nach dem Wechsel in diesen Modus wird die Web-Schnittstelle nicht mehr zur Verfügung stehen, bis das System im normalen Modus neu gestartet wird.",
-			"button": "Im Kopfhörer-Modus starten"
+			"desc": "Das Gerät verbindet sich mit dem angegebenen Bluetooth-Kopfhörer.",
+			"button": "Im Kopfhörer-Modus starten",
+			"indicator": "Bluetooth-Kopfhörer Modus"
 		},
 		"device": {
 			"title": "Bluetooth-Gerät (Kopfhörer)",
@@ -344,7 +386,8 @@
 		"neopixel": {
 			"title": "Neopixel (Helligkeit)",
 			"restart": "Nach dem Einschalten",
-			"nightmode": "Im Nachtmodus"
+			"nightmode": "Im Nachtmodus",
+			"atmomode": "Im Atmolight-Modus"
 		},
 		"sleep": {
 			"title": "Deep Sleep",
@@ -364,7 +407,8 @@
 			"sortMode": "Sortierungsmodus für Wiedergabeliste und Dateibrowser",
 			"strcmp": "Standardsortierung",
 			"strnatcmp": "Natürlich: Groß- und Kleinschreibung beachten",
-			"strnatcasecmp": "Natürlich: Groß- und Kleinschreibung ignorieren"
+			"strnatcasecmp": "Natürlich: Groß- und Kleinschreibung ignorieren",
+			"recDepth": "Maximale Rekursionstiefe beim Generieren der Rekursiv-Playlists"
 		}
 	},
 	"tools": {

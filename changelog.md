@@ -2,6 +2,63 @@
 
 ## DEV-branch
 
+* 28.03.2026: Bug fix: Suppression of sound artifacts on the speaker during Bluetooth playback (#397)
+* 28.03.2026: feature: Atmolight (#393)
+
+## Version 2.6 (28.02.2026)
+
+* 08.01.2026: More flexible MQTT-handling and new MQTT naming scheme (#373)
+
+## Version 2.5 (01.01.2026)
+
+* 01.01.2026: Add bluetooth source connection handling and flushing (#384)
+* 01.01.2026: Refactor button handling logic (#387)
+* 01.01.2026: Refactor shutdown button logic for clarity (#385)
+* 01.01.2026: Simplify channel to bit mapping in Port_ChannelToBit (#386)
+* 09.12.2025: Web UI: Allow escape from Bluetooth mode
+* 07.12.2025: WiFi / Bluetooth coexistence
+* 30.11.2025: Allocate playlist, tasklist in PSRAM if available
+* 30.11.2025: Web UI: Show SD card icon and volume label
+* 30.11.2025: BT-Source: Allocate ringbuffer in PSRAM to save heap, use lazy initialization
+* 26.11.2025: Web UI: Add missing WiFi & BT commands in button command selects
+* 24.11.2025: Audio Library Update: Switch to callbacks, restore cover images (#383), thanks to @sfields !
+* 24.11.2025: Bugfix crash in BT-Sink mode
+* 31.10.2025: Audio_Loop necessary after task removal
+* 26.10.2025: Make LFP-voltages default
+
+## Version 2.4.4 (24.10.2025)
+
+* 24.10.2025: Fix: Remove of error indication while track change
+* 23.10.2025: New feature: recursive playlists (#381)
+* 23.10.2025: Cleanup log messages
+* 22.10.2025: Switch to long commit IDs
+* 17.10.2025: Regression fix: remove volume-queue from IRreceiver.cpp
+
+## Version 2.4.3 (09.10.2025)
+
+* 08.10.2025: Bump to ESP-IDF 5.5.1
+* 08.10.2025: Use importlib instead of setuptools
+* 28.09.2025: Update PN5180 lib
+* 27.09.2025: Enable firmware builds with BT
+
+## Version 2.4.2 (18.09.2025)
+
+* 16.09.2025: Fix broken Bluetooth headset mode (BT-Source)
+* 15.09.2025: Fix "Abspielposition beim Ausschalten merken"
+
+## Version 2.4.1 (14.09.2025)
+
+* 11.09.2025: Update audio-lib and Fast-LED (#375), thanks to @Joe91
+* 27.08.2025: support of virtual RFID-Cards in Webserver (#376), thanks to @Joe91
+
+## Version 2.4 (24.08.2025)
+
+* 16.08.2025: Measuring of battery voltage: analogRead() -> analogReadMilliVolts()
+* 15.08.2025: Reduce voltage-stepping in webinterface from 0.1 V to 0.05 V
+* 13.08.2025: Enforce usage of port-expander for some HALs
+* 13.08.2025: No more Audio-Task (#374), thanks to @Joe91 !
+* 12.06.2025: Fix compilation error with NEOPIXEL_REVERSE_ROTATION (#369), thanks to @SZenglein !
+* 12.06.2025: Clear ping- and trackProgress intervals when websocket reconnects (#368), thanks to @SZenglein !
 * 10.05.2025: MQTT: switch from pubsubclient to IDF-MQTT (#363), thanks to @Joe91
 * 05.05.2025: Switch DEV-branch to Arduino 3.2.0 (ESP-IDF 5.4.1)
 * 30.04.2025: Fix loosing Websocket Ping/Pong connection, thanks to @Joe91 !

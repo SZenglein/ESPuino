@@ -12,25 +12,24 @@
 
 	//################## HARDWARE-PLATFORM ###############################
 	/* Make sure to also edit the configfile, that is specific for your platform.
-	If in doubts (your develboard is not listed) use HAL 7
+	If in doubts (your board is not listed) use HAL 7
 
 	!!!Only ESP32 with PSRAM are supported!!!
 
-	1: Wemos Lolin32                        => REMOVED (because of missing PSRAM)
-	2: ESP32-A1S Audiokit                   => REMOVED (because of stale development, lack of users and lack of GPIOs)
-	3: Wemos Lolin D32                      => REMOVED (because of missing PSRAM)
-	4: Wemos Lolin D32 pro                  => settings-lolin_D32_pro.h
-	5: Lilygo T8 (V1.7)                     => settings-ttgo_t8.h
-	6: ESPuino complete                     => settings-complete.h
-	7: Lolin D32 pro SDMMC Port-Expander    => settings-lolin_d32_pro_sdmmc_pe.h
-	8: AZDelivery ESP32 NodeMCU             => REMOVED (because of missing PSRAM)
-	9: Lolin D32 SDMMC Port-Expander        => REMOVED (because of missing PSRAM)
-	99: custom                              => settings-custom.h
+	HAL 4: Wemos Lolin D32 pro                  => settings-lolin_D32_pro.h
+	HAL 5: Lilygo T8 (V1.7)                     => settings-ttgo_t8.h
+	HAL 6: ESPuino complete                     => settings-complete.h
+	HAL 7: Lolin D32 pro SDMMC Port-Expander    => settings-lolin_d32_pro_sdmmc_pe.h
+	HAL 99: custom                              => settings-custom.h
 	*/
-	#ifndef HAL             // Will be set by platformio.ini. If using Arduino-IDE you have to set HAL according your needs!
-		#define HAL 99       // HAL 1 = LoLin32, 2 = ESP32-A1S-AudioKit, 3 = Lolin D32, 4 = Lolin D32 pro; ... 99 = custom
+	#ifndef HAL             // Will be set by platformio.ini. There's no need to adjust this manually right here
+		#define HAL 7
 	#endif
 
+	// Enforce port expander for some HALs because it's mandatory for those and users constantly forget it. Endless story...
+	#if (HAL == 6) || (HAL == 7)
+		#define PORT_EXPANDER_ENABLE 
+	#endif
 
 	//########################## MODULES #################################
 	//#define PORT_EXPANDER_ENABLE          // When enabled, buttons can be connected via port-expander PCA9555 (https://forum.espuino.de/t/einsatz-des-port-expanders-pca9555/306)
@@ -40,7 +39,7 @@
 	#define FTP_ENABLE                      // Enables FTP-server; DON'T FORGET TO ACTIVATE AFTER BOOT BY PRESSING PAUSE + NEXT-BUTTONS (IN PARALLEL)!
 	#define NEOPIXEL_ENABLE                 // Don't forget configuration of NUM_LEDS if enabled
 	#define NEOPIXEL_REVERSE_ROTATION     // Some Neopixels are adressed/soldered counter-clockwise. This can be configured here.
-	#define LANGUAGE DE                     // DE = deutsch; EN = english
+	#define LANGUAGE DE                     // DE = deutsch; EN = english: FR = french
 	//#define STATIC_IP_ENABLE              // DEPRECATED: Enables static IP-configuration (change static ip-section accordingly)
 	#define HEADPHONE_ADJUST_ENABLE         // Used to adjust (lower) volume for optional headphone-pcb (refer maxVolumeSpeaker / maxVolumeHeadphone) and to enable stereo (if PLAY_MONO_SPEAKER is set)
 	#define PLAY_MONO_SPEAKER             // If only one speaker is used enabling mono should make sense. Please note: headphones is always stereo (if HEADPHONE_ADJUST_ENABLE is active)
@@ -218,8 +217,10 @@
 		#define OFFSET_PAUSE_LEDS		false		// if true the pause-leds are centered in the mid of the LED-Strip
 		#define PROGRESS_HUE_START		85          	// Start and end hue of mulitple-LED progress indicator. Hue ranges from basically 0 - 255, but you can also set numbers outside this range to get the desired effect (e.g. 85-215 will go from green to purple via blue, 341-215 start and end at exactly the same color but go from green to purple via yellow and red)
 		#define PROGRESS_HUE_END		-1
+		#define ATMO_HUE				10
+		#define ATMO_SATURATION			180
 		#define DIMMABLE_STATES			50		// Number of dimmed values between two full LEDs (https://forum.espuino.de/t/led-verbesserungen-rework/1739)
-		//#define LED_OFFSET 0 // shifts the starting LED in the original direction of the neopixel ring
+		//#define LED_OFFSET                		0           	// shifts the starting LED in the original direction of the neopixel ring
 	#endif
 
 	#if defined(MEASURE_BATTERY_VOLTAGE) || defined(MEASURE_BATTERY_MAX17055)
@@ -260,34 +261,35 @@
 	// Seekmode-configuration
 	constexpr uint8_t jumpOffset = 30;                            // Offset in seconds to jump for commands CMD_SEEK_FORWARDS / CMD_SEEK_BACKWARDS
 
-	// (optional) Topics for MQTT
+	// Topics for MQTT: used to build actual topics in webinterface. So normally there's no need to apply any changes here 
+	// MQTT configuration available via webinterface: https://forum.espuino.de/t/dokumentation-webinterface/2807.
 	#ifdef MQTT_ENABLE
-		#define DEVICE_HOSTNAME "ESP32-ESPuino"         // Name that is used for MQTT
-		constexpr const char topicSleepCmnd[] = "Cmnd/ESPuino/Sleep";
-		constexpr const char topicSleepState[] = "State/ESPuino/Sleep";
-		constexpr const char topicRfidCmnd[] = "Cmnd/ESPuino/Rfid";
-		constexpr const char topicRfidState[] = "State/ESPuino/Rfid";
-		constexpr const char topicTrackState[] = "State/ESPuino/Track";
-		constexpr const char topicTrackControlCmnd[] = "Cmnd/ESPuino/TrackControl";
-		constexpr const char topicCoverChangedState[] = "State/ESPuino/CoverChanged";
-		constexpr const char topicLoudnessCmnd[] = "Cmnd/ESPuino/Loudness";
-		constexpr const char topicLoudnessState[] = "State/ESPuino/Loudness";
-		constexpr const char topicSleepTimerCmnd[] = "Cmnd/ESPuino/SleepTimer";
-		constexpr const char topicSleepTimerState[] = "State/ESPuino/SleepTimer";
-		constexpr const char topicState[] = "State/ESPuino/State";
-		constexpr const char topicCurrentIPv4IP[] = "State/ESPuino/IPv4";
-		constexpr const char topicLockControlsCmnd[] ="Cmnd/ESPuino/LockControls";
-		constexpr const char topicLockControlsState[] ="State/ESPuino/LockControls";
-		constexpr const char topicPlaymodeState[] = "State/ESPuino/Playmode";
-		constexpr const char topicRepeatModeCmnd[] = "Cmnd/ESPuino/RepeatMode";
-		constexpr const char topicRepeatModeState[] = "State/ESPuino/RepeatMode";
-		constexpr const char topicLedBrightnessCmnd[] = "Cmnd/ESPuino/LedBrightness";
-		constexpr const char topicLedBrightnessState[] = "State/ESPuino/LedBrightness";
-		constexpr const char topicWiFiRssiState[] = "State/ESPuino/WifiRssi";
-		constexpr const char topicSRevisionState[] = "State/ESPuino/SoftwareRevision";
+		constexpr const char base_topic[] = "";
+		constexpr const char device_id[] = "ESPuino-<MAC>";        // Name that is used for MQTT
+		constexpr const char setter_token[] = "set";        		// Word to identify command-topics
+		// Topics (settable)
+		constexpr const char topicSleep[] = "sleep";           // Cmnd/State: power off (Cmnd '0' or 'OFF' to shutdown), State: ON/OFF
+		constexpr const char topicRfid[] = "rfid";            // Cmnd/State: emulate an RFID tag (Cmnd: 12-digit id), State: current RFID tag id
+		constexpr const char topicTrackControl[] = "trackcontrol"; // Cmnd: playback control (1=stop,3=play/pause,4=next,5=prev,6=first,7=last,8=next folder,9=prev folder)
+		constexpr const char topicLoudness[] = "loudness";    // Cmnd/State: set / report volume (numeric)
+		constexpr const char topicSleepTimer[] = "sleep_timer"; // Cmnd/State: sleep timer commands (EOP/EOT/EO5T, minutes, or 0 to deactivate)
+		constexpr const char topicLockControls[] ="lock_controls"; // Cmnd/State: lock or unlock physical controls (ON/OFF)
+		constexpr const char topicRepeatMode[] = "repeatmode"; // Cmnd/State: set repeat mode (0=no,1=track,2=playlist,3=both)
+		constexpr const char topicLedBrightness[] = "led_brightness"; // Cmnd/State: set LED brightness 0..255
+		constexpr const char topicAmbientLight[] = "ambient_light"; // Cmnd/State: set ambient light (ON/OFF)
+
+		// Topics (state only)
+		constexpr const char topicTrack[] = "track";          // State: current track info (e.g. "(2/10) /mp3/.../file.mp3")
+		constexpr const char topicCoverChanged[] = "cover_changed"; // State: indicates cover image may have changed
+		constexpr const char topicState[] = "state";         // State: 'Online' when powering on, 'Offline' when powering off
+		constexpr const char topicCurrentIPv4IP[] = "ipv4";  // State: sends current IPv4 address
+		constexpr const char topicPausePlay[] = "pauseplay"; // State: playback state: 'idle', 'play', 'pause'
+		constexpr const char topicPlaymode[] = "playmode";  // State: numeric playmode
+		constexpr const char topicWiFiRssi[] = "wifi_rssi"; // State: WiFi signal strength (dBm)
+		constexpr const char topicSRevision[] = "software_revision"; // State: software revision string
 		#ifdef BATTERY_MEASURE_ENABLE
-		constexpr const char topicBatteryVoltage[] = "State/ESPuino/Voltage";
-		constexpr const char topicBatterySOC[]     = "State/ESPuino/Battery";
+		constexpr const char topicBatteryVoltage[] = "battery_voltage"; // State: battery voltage float (e.g. 3.81)
+		constexpr const char topicBatterySOC[]     = "battery_soc"; // State: battery charge percent (e.g. 83.0)
 		#endif
 	#endif
 

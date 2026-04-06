@@ -12,71 +12,99 @@
   dort mit eurem Github-Login einloggen, jedoch auch "normal" anmelden. Dokumentation findet ihr
   insbesondere hier: <https://forum.espuino.de/c/dokumentation/anleitungen/10>.
 
+## Firmwares
+
+Ready-to-use firmwares are available for [download](https://github.com/biologist79/ESPuino-Firmware) for several
+HALs, RFID-readers PN5180 or RC522 and with or without bluetooth. These are provided for
+[master](https://github.com/biologist79/ESPuino-Firmware/tree/main/Firmwares/master) and
+[dev-branch](https://github.com/biologist79/ESPuino-Firmware/tree/main/Firmwares/dev).
+
 ## News
 
-> :warning: By the end of october 2023, ESPuino switched framework from ESP32-Arduino1 to ESP32-Arduino2.
-This brought lots of improvements but as it turned out, due to memory restrictions this version
-no longer runs safely on ESP32 without PSRAM. So please make sure to use an ESP32-WROVER!
+> :warning: Due to memory restrictions and complexity, ESPuino doesn't run safely on ESP32
+without PSRAM. So please make sure to use an ESP32-WROVER!
+
+> :warning: As of January 8, 2026, MQTT topics have changed! Further infos [here](https://forum.espuino.de/t/neues-namensschema-fuer-mqtt/2553/34?u=biologist).
 
 ## Current development
 
 There is a [development branch (dev)](https://github.com/biologist79/ESPuino/tree/dev) that contains
 new features, that will be introduced and tested there first until they become part of the master
-branch. Feel free to try but be advised this could be unstable.
+branch. Feel free to test but be advised this could be unstable.
 
 ## ESPuino - what's that?
 
-The basic idea of ESPuino is to use RFID tags to control an audio player. Even for kids this concept
-is simple: place a RFID-tagged object (card, toy character, etc.) on top of a box and the music
-starts to play stuff from SD card or webradio. Place a different RFID tag on it and something else
-is played. Simple as that.
+The concept of ESPuino is a [more-or-less small enclosure](https://forum.espuino.de/t/zeigt-her-eure-espuinos/554/)
+that contains a speaker so it can play music and audiobooks. Here is an example of a 3D-printed
+unit, the [Biobox 3d](https://forum.espuino.de/t/biobox-3d/3130):
 
-This project is based on the popular microcontroller [ESP32 by
-Espressif](https://www.espressif.com/en/products/hardware/esp32/overview). Why? It's powerful and
-having WiFi support out-of-the-box enables further features like an integrated webserver,
-smarthome-integration via MQTT, webradio and FTP server. And even Bluetooth, too! However, my
-primary focus was to port the project to a modular base: MP3-decoding is done in software and the
-digital music output is done via the popular [I2S protocol](https://en.wikipedia.org/wiki/I%C2%B2S).
-So we need a [DAC](https://en.wikipedia.org/wiki/Digital-to-analog_converter) to make an analog
-signal of it: I did all my tests with
-[MAX98357A](https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts),
-[UDA1334](https://www.adafruit.com/product/3678),
-[MS6324](https://forum.espuino.de/t/kopfhoererplatine-basierend-auf-ms6324-und-tda1308/1099/) and
-[PCM5102a](https://github.com/biologist79/ESPuino/tree/master/PCBs/Headphone%20with%20PCM5102a%20and%20TDA1308).
+![Biobox 3d](https://forum.espuino.de/uploads/default/original/2X/d/d8e0904fd78723dbc1b5c039ab9da2d778c7c987.jpeg "Biobox 3d")
+
+Primarily the device is controlled using RFID cards, similar to those used for access control
+(ski lifts, office access, etc.). To uniquely identify an RFID card, it carries a fixed ID.
+ESPuino reads that ID (a 12-digit number) with an RFID card reader and triggers an action based
+on it. Which action to take is taught beforehand via ESPuino’s web interface: you upload audio
+files to a microSD card, pick the desired audio file (or an entire folder) in the web interface’s
+file browser and link it to the RFID card you placed. You mostly just click through the
+interface while manual input is possible (but usually unnecessary). When the RFID card is presented
+again, ESPuino loads the mapping and starts the desired playback. Present a different RFID card and
+the playback associated with that card starts. In addition to audio files from the local microSD
+card, web streams can be played, too. In Bluetooth mode you can also stream to the ESPuino from
+your phone using [A2DP](https://de.wikipedia.org/wiki/A2DP), for example.
+
+Further control elements on ESPuino are buttons and a [rotary encoder](https://forum.espuino.de/t/drehencoder-by-espuino/2414).
+Buttons can be assigned dozens of different actions via the web interface — double assignments (short
+press vs. long press) are possible. If used, the rotary encoder is reserved exclusively
+for volume control but includes an integrated button, that's usually used to switch on ESPuino and
+start measurement of battery's voltage which is instantly indicated via neopixel. By default
+ESPuino is designed for three buttons and one rotary encoder, but this can be varied: from 0 to 5
+buttons, and no rotaty encoder or one rotaty encoder. If no rotary encoder is present, volume
+control is handled, for example, via buttons.
+
+A key feedback element is color-programmable LEDs (Neopixels), typically used as a
+[Neopixel ring](https://duckduckgo.com/?t=ffab&q=neopixel+ring&ia=images&iax=images). They can
+show, for example, track progress (if half the LEDs are lit, the track is half done), volume,
+battery level, and error states — and
+[much, much more](https://forum.espuino.de/t/was-zeigt-der-neopixel-des-espuino-alles-an/86)! ESPuino
+also works without Neopixels, but that is not recommended because they convey a lot of information.
+
+There is also a [headphone jack](https://forum.espuino.de/t/kopfhoererplatine-basierend-auf-ms6324-und-tda1308-bzw-lm4808m/1099)
+that mutes the speaker when headphones are plugged in. Alternatively, a Bluetooth headphone can be used.
+
+ESPuino also communicates with the outside world: besides the web interface, it supports
+[MQTT](https://de.wikipedia.org/wiki/MQTT), a [REST API](https://github.com/biologist79/ESPuino/blob/master/REST-API.yaml)
+and an FTP server. New audio files can be copied to the microSD card via the web interface or
+FTP — so the microSD card does not need to be removed.
 
 ## Hardware setup
 
-You could start on a breadboard with jumper wires but I _strongly_ recommend to start right away
-with a PCB that was especially developed for ESPuino. There are several available, but
-[ESPuino-mini 4L (SMD)](https://forum.espuino.de/t/espuino-mini-4layer/1661) can be considered as
-being the latest generation. This pcb can obtained via the forum.
+You could start on a breadboard with jumper wires. However, the simplier way is to kickstart right away
+with a PCB that was especially developed for ESPuino. There are [several available](https://forum.espuino.de/c/hardware/pcbs/11),
+but ["ESPuino Complete"](https://forum.espuino.de/t/espuino-complete/3817) can be considered being the
+latest one. This pcb can obtained via the [forum](https://forum.espuino.de/). It covers a charger
+for LiFePO4 or LiPo batteries (for sure also runs with USB-C only) and provides connectors for up to 5 buttons,
+rfid-reader, rotary encoder, i2c external, Neopixel, USB-C, µSD, speaker, [headphones PCB](https://forum.espuino.de/t/kopfhoererplatine-basierend-auf-ms6324-und-tda1308-bzw-lm4808m/1099) and some custom stuff.
+[Port-expander](https://www.nxp.com/docs/en/data-sheet/PCA9555.pdf) and [MAX98357a](https://www.analog.com/en/products/MAX98357A.html)
+are integrated, too. A [buck boost converter](https://www.ti.com/product/TPS63000) provides
+stable 3.3 V while battery's voltage is [supervised](https://www.sg-micro.com/product/SGM809)
+in order to prevent it from deep discharge. However, never use a lithium battery without a
+further protection circuit that's already part of the battery pack!
 
-![mini4L](https://forum.espuino.de/uploads/default/original/2X/b/b2762236b56ea3d4aa776dcbb5f5c7254f8a02b4.jpeg "Mini4L carrier PCB")
+![Complete](https://forum.espuino.de/uploads/default/original/2X/7/750a5af3cf71bc7ef35f9adc7054c981f169f96b.jpeg "Complete")
 
-Furthermore you need a ESP32-develboard like (or another one that's
-pin compatible):
-
-- [D32 pro LiFePO4](https://forum.espuino.de/t/esp32-develboard-d32-pro-lifepo4/1109)
-- [Wemos Lolin D32 pro](https://www.wemos.cc/en/latest/d32/d32_pro.html)
-
-LiFePO4-Develboard was developed my myself can be obtained obtained via the forum. This is how it looks like:
-![LiFePO4-Develboard](https://forum.espuino.de/uploads/default/original/2X/b/b0b6d9562a5b33e396850a9ab307dfc6f2a913cc.jpeg "LiFePO4-Develboard")
-
-> :warning: **Due to memory restrictions meanwhile it's mandatory to use ESP32 with
-PSRAM.** This being said you need to make sure that your develboard carries an ESP32-WROVER.
-And you should make sure that 16 MB flash memory is available (both is true for all
-develboards named above).
+> :warning: However, feel free to develop PCBs yourself. But again, be advised your ESP32 needs PSRAM in order to run ESPuino properly.
 
 Optionally a [headphone-pcb](https://forum.espuino.de/t/kopfhoererplatine-basierend-auf-ms6324-und-tda1308/1099/)
-can be attached to [ESPuino-mini 4L (SMD)](https://forum.espuino.de/t/espuino-mini-4layer/1661).
-
-However, feel free to develop PCBs yourself. But again, be advised your ESP32 needs PSRAM in order to run ESPuino properly.
+can be attached to [Complete](https://forum.espuino.de/t/espuino-complete/3817) in order to connect headphones.
+While headphone's plugged in, speaker is automatically disabled.
 
 ## Getting started
 
 - [Much more documentation in german
   language](https://forum.espuino.de/c/dokumentation/anleitungen/10).
-- You need to install Microsoft's [Visual Studio Code](https://code.visualstudio.com/).
+- There are already ready-to-use firmwares for [download available](https://github.com/biologist79/ESPuino-Firmware) that
+  probably already fit your needs. Further informations can be found [here](https://forum.espuino.de/t/fertige-espuino-firmwares-zum-runterladen/3941).
+- In case you want to compile your own firmware, first you need to install Microsoft's [Visual Studio Code](https://code.visualstudio.com/).
 - Install [PlatformIO Plugin](https://platformio.org/install/ide?install=vscode) into [Visual Studio
   Code](https://code.visualstudio.com/) and make sure to have a look at the
   [documentation](https://docs.platformio.org/en/latest/integration/ide/pioide.html).
@@ -94,19 +122,19 @@ However, feel free to develop PCBs yourself. But again, be advised your ESP32 ne
 - Now, that the Git repository is saved locally, import this folder into Platformio as a project.
 - Select the [desired
   environment](https://forum.espuino.de/t/projekt-und-profilwechsel-in-visual-studio-code/768) (e.g.
-  lolin_d32_pro_sdmmc_pe).
+  complete).
 - Edit `src/settings.h` according your needs.
-- Edit board-specific (`HAL`) config-file (e.g. `settings-lolin_d32_pro_sdmmc_pe.h` for Lolin
-  D32 pro). If you're running a board that is not listed there: start with `settings-custom.h`
+- Edit board-specific (`HAL`) config-file (e.g. `settings-complete.h` for Complete PCB) and switch to
+  that HAL in VSC. If you're running a board that is not listed there: start with `settings-custom.h`
   and change it according your needs.
-- Connect your develboard via USB, click the alien-head icon in the left sidebar, choose the project
+- Connect your PCB/develboard via USB, click the alien-head icon in the left sidebar, choose the project
   task that matches your desired HAL and run `Upload and Monitor`. All libraries necessary are
   fetched automatically and compilation of the code gets started. After that, your ESP32 is flashed
   with the firmware.
 - Now have a look at the serial output at the bottom of Visual Studio Code's window. At the first
   run there might appear a few error messages (related to missing entries in NVS). Don't worry, this
-  is just normal. However, make sure the SD card is detected as this is mandatory!
-- If everything ran fine, at the first run, ESPuino should open an access-point and ESPuino offers a
+  is just normal. However, make sure the µSD card is detected as this is mandatory for ESPuino to boot!
+- If everything is fine, at the first run, ESPuino should open an access-point and ESPuino offers a
   captive portal that is shown on your computer. If that's not the case, join a WiFi called
   "ESPuino" and enter `http://192.168.4.1` to your webbrowser. Enter WiFi credentials and the
   hostname there (or in the captive portal). After saving the configuration, restart ESPuino.
@@ -115,7 +143,7 @@ However, feel free to develop PCBs yourself. But again, be advised your ESP32 ne
   webbrowser via this IP; make sure to allow Javascript. If the mDNS feature is active in
   `src/settings.h`, you can use the hostname configured extended by .local instead the IP. So if you
   configured `espuino` as hostname, you can use `http://espuino.local` for web GUI and FTP.
-- Via FTP and web GUI you can upload data (expect a throughput like 320 kB/s up to 700 kB/s).
+- Via FTP and web GUI you can upload data (expect a throughput like 320 kB/s up to 500 kB/s).
 - FTP needs to be activated after boot if you need it! Don't forget to assign action
   `ENABLE_FTP_SERVER` in `settings.h` to be able to activate it. Neopixel flashes green (1x) if
   enabling was successful. It'll be disabled automatically after next reboot. Means: you have to
@@ -130,11 +158,11 @@ However, feel free to develop PCBs yourself. But again, be advised your ESP32 ne
 Having the µSD card working is mandatory, ESPuino doesn't start without working SD card (at least
 unless `NO_SDCARD` hasn't been enabled previously). However, there are two modes available to
 interface µSD cards: SPI and SDMMC (1 bit). Be advised that SDMMC is twice as fast as SPI and
-needs one GPIO less. So basically it's a no-brainer.
+needs one GPIO less. So basically it's a no-brainer and SDMMC is used for "ESPuino Complete".
 
 ## Which RFID-reader: RC522 or PN5180?
 
-RC522 is so to say the ESPuino standard. It's cheap and works, but RFID tags have to be placed close
+RC522 is in a way the ESPuino standard: it's cheap and works, but RFID tags have to be placed close
 to the reader. PN5180 instead has better RFID range/sensitivity and can read ISO-15693 / iCode
 SLIX2-tags aka 'Tonies' (you need a password to read Tonies), too. You can also wake up ESPuino with
 the a RFID tag (after flashing PN5180 with a new firmware). This feature is called LPCD.
@@ -142,16 +170,16 @@ Disadvantages PN5180: it's more expensive and needs more GPIOs (6/7 instead of 4
 it's worth it! Refer to PN5180's wiring section below for further information. Hint: if using 3.3 V
 only make sure to connect these 3.3 V to PN5180's 5 V AND 3.3 V. Sounds weird but it's necessary.
 
-## 3.3 V or 5 V?
+## 3.3 V only or 5 V, too?
 
-ESP32 runs at 3.3 V only. But what about the periphery?
+ESP32 itself runs at 3.3 V only. But what about the periphery? Spoiler: "Complete" internally runs at
+3.3 V only.
 
-- 3.3 V! Because: if you plan to use battery mode with LiPo/LiFePO4, there's no 5 V available (unless
-  USB is connected or you make use of a boost converter). That's why my focus is on 3.3 V only. If
-  you want to use 5 V instead - do so, but be advised it might not be compatible with battery mode.
+- My opinion: 3.3 V! Because it's simple. If you plan to use battery mode with LiPo/LiFePO4,
+  there's no 5 V available (unless USB is connected or you make use of a boost converter).
 - MAX98357A: provides more power at 5 V but also runs at 3.3 V. Anyway: it's still loud enough (in
   my opinion).
-- Neopixel: specification says it needs 5 V but runs at 3.3 V as well.
+- Neopixel: specification says it needs 5 V but runs at 3.3 V absolutely fine.
 - RC522: needs 3.3 V (don't ever power with 5 V!)
 - PN5180: at 3.3 V make sure to connect both 5 V and 3.3 V pins to 3.3 V. If 5 V is available all
   the time: connect 5 V to 5 V and 3.3 V to 3.3 V.
@@ -161,7 +189,7 @@ ESP32 runs at 3.3 V only. But what about the periphery?
 
 ## WiFi
 
-WiFi is mandatory for web GUI, FTP, MQTT and webradio. However, WiFi can be temporarily or
+WiFi is mandatory for web GUI, FTP, MQTT and webradio. However, it can be temporarily or
 permanently disabled (and ESPuino remembers this state after the next restart). There are two ways
 to (re-)enable/disable WiFi:
 
@@ -174,7 +202,7 @@ to (re-)enable/disable WiFi:
 
 > :warning: **Due to memory restrictions it's not possible to run Bluetooth in
   parallel with WiFi.** This means that you cannot stream webradio via Bluetooth
-  or access the web GUI while this mode is enabled.
+  or access the web GUI while this mode is enabled. Switching both modes requires a restart.
 
 ### ESPuino as A2DP sink (stream to ESPuino)
 
@@ -300,12 +328,13 @@ modification:
 
 ### Neopixel LEDs (optional)
 
-Indicates different things. Don't forget configuration of number of LEDs via `#define NUM_LEDS`.
-Most designs use a Neopixel ring, but a linear strip is also possible.
+Indicates various things. Don't forget configuration of number of LEDs via `#define NUM_LEDS`, but
+that's also adjustable via webinterface.
+Most ESPuino designs use a Neopixel ring, but a linear strip is also possible.
 
 > :information_source: Some Neopixels use a reversed addressing which leads to the 'problem', that
   all effects are shown counter clockwise. If you want to change that behaviour, just enable
-  `NEOPIXEL_REVERSE_ROTATION`.
+  `NEOPIXEL_REVERSE_ROTATION`. This is also adjustable via webinterface.
 
 #### Boot
 
@@ -349,7 +378,7 @@ Most designs use a Neopixel ring, but a linear strip is also possible.
 
 > :warning: This section describes my default-design: 3 buttons + rotary-encoder. Feel free to
   change number of buttons (up to 5) and button-actions according your needs in `settings.h` and
-  your develboard-specific config-file (e.g. `settings-lolin_d32_pro_sdmmc_pe.h`). At maximum you can activate five
+  your develboard-specific config-file (e.g. `settings-complete.h`). At maximum you can activate five
   buttons + rotary-encoder. Minimum duration for long press (to distinguish vom short press) in ms
   is defined by `intervalToLongPress`. All actions available are listed in `src/values.h`. If using
   GPIO \>= 34 make sure to add a external pullup-resistor (10 k).
@@ -372,7 +401,8 @@ Most designs use a Neopixel ring, but a linear strip is also possible.
 
 Any of the button actions can also be assigned to virtual RFID cards.
 Those cards then can be assigned on the web GUI like normal cards.
-To select a virtual RFID card, just press the configured button action, the virtual RFID automatically gets filled in in the web GUI.
+To select a virtual RFID card, just press the configured button action,
+the virtual RFID automatically gets filled in in the web GUI.
 
 ### Music playback
 
@@ -395,9 +425,9 @@ This mode is different from the others because the last playback position is sav
 - track is over.
 - playlist is over (position is reset to the first track and file position 0).
 - As per default last playback position is not saved when applying a new RFID tag. You can enable
-  this using `SAVE_PLAYPOS_WHEN_RFID_CHANGE`.
+  this using `SAVE_PLAYPOS_WHEN_RFID_CHANGE` or by webinterface.
 - As per default last playback position is not saved when doing shutdown. You can enable this using
-  `SAVE_PLAYPOS_BEFORE_SHUTDOWN`.
+  `SAVE_PLAYPOS_BEFORE_SHUTDOWN` or by webinterface.
 
 ### FTP (optional)
 
@@ -406,14 +436,14 @@ This mode is different from the others because the last playback position is sav
   was successful. It'll be disabled automatically after next reboot. Means: you have to enable it
   every time you need it (if reboot was in between). Sounds annoying and maybe it is, but it's
   running this way in order to save heap memory when FTP isn't needed.
-- Why FTP? Well: in order to avoid exposing the SD card or disassembling ESPuino all the time for
+- Why FTP? In order to avoid exposing the SD card or disassembling ESPuino all the time for
   adding new music, it's possible to transfer music to the SD card using FTP. Another possibility
   is to do via web GUI (webtransfer).
 - Default user and password are set to `esp32` / `esp32` but can be changed via GUI.
 - Secured FTP is not available. So make sure to disable SSL/TLS.
 - Software: my recommendation is [Filezilla](https://filezilla-project.org/) as it's free and
   available for multiple platforms.
-- Please note: if music is played in parallel, this rate decreases dramatically! So better stop
+- Please note: if music is played in parallel, this rate decreases! So consider to stop
   playback when doing file transfers.
 
 ### Energy saving
@@ -425,7 +455,7 @@ and any input via buttons. Every button interaction resets the counter.
 
 ### Backups
 
-As all assignments between RFID IDs and actions (playback mode, file to play, ...) is saved in ESP's
+As all assignments between RFID IDs and actions (playback mode, file to play, ...) is saved in ESP32's
 NVS, the problem is that it's all gone when the ESP is broken. So that's where a backup comes in
 handy. Every time you change or add a new assignment between a RFID tag and an action via GUI, a
 backup file is saved on the SD card. The file's name can be changed via `backupFile`. So better
@@ -448,52 +478,43 @@ GUI, that's accessible via app + web. For further information (and pictures) ref
 directory](https://github.com/biologist79/ESPuino/tree/master/openHAB).
 
 > :information_source: I [described](https://github.com/biologist79/ESPuino/tree/master/openHAB) a
-  sample config for openHAB2. However, meanwhile openHAB3 is available and all the stuff described
+  sample config for openHAB2. However, meanwhile openHAB5 is available and all the stuff described
   can also be configured via GUI. Be advised that openHAB is pretty complex and you have to spend
   some time to get familiar with it.
 
+However, there's also stuff available for [Home Assistant](https://forum.espuino.de/t/home-assistant-integration/3763).
+
 #### MQTT topics
 
-Feel free to use your own smarthome environments (instead of openHAB). The MQTT topics available are
+Feel free to use your own smarthome environments (Home Assistant, Node Red...). The MQTT topics available are
 described as follows.
 
-> :information_source: If you want to send a command to ESPuino, you have to use a cmnd-topic
-  whereas ESPuino pushes its states back via state-topics. So guess you want to change the volume to
-  8 you have to send this number via topic-variable `topicLoudnessCmnd`. Immediately after doing so,
-  ESPuino sends a conformation of this command using `topicLoudnessState`. To get hands on MQTT I
-  recommend this [one](https://www.hivemq.com/mqtt-essentials/) as introduction (covers more than
-  you need for ESPuino).
+> :information_source: Topics follow the pattern: `[<base_topic>/]device_id/topic[/setter_token]`. Command topics use the optional setter token appended to the topic (for example: `<baseTopic>/<deviceId>/<topic>/<setter_token>`, e.g. `home/ESPuino-01/loudness/set`), while state topics are published on the topic without the setter token (for example: `<baseTopic>/<deviceId>/<topic>`, e.g. `home/ESPuino-01/loudness`). For example, to change the volume to `8`, publish `8` to the command topic for `topicLoudness` (e.g. `.../loudness/set`); ESPuino will confirm by publishing the value on the state topic for `topicLoudness` (`.../loudness`). To get hands on MQTT I recommend this [one](https://www.hivemq.com/mqtt-essentials/) as introduction (covers more than you need for ESPuino).
 
 | topic-variable          | range           | meaning                                                                                                                                                |
 | ----------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| topicSleepCmnd          | 0 or OFF        | Power off ESPuino immediately                                                                                                                          |
-| topicSleepState         | ON or OFF       | Sends ESPuino's last state                                                                                                                             |
-| topicRfidCmnd           | 12 digits       | Set number of RFID tag which 'emulates' an RFID tag (e.g. `123789456089`)                                                                              |
-| topicRfidState          | 12 digits       | ID of current RFID tag (if not a modification card)                                                                                                    |
-| topicTrackState         | String          | Sends current track number, total number of tracks and full path of curren track. E.g. "(2/10) /mp3/kinderlieder/Ri ra rutsch.mp3"                     |
-| topicTrackControlCmnd   | 1 -> 7          | `1`=stop; `2`=unused!; `3`=play/pause; `4`=next; `5`=prev; `6`=first; `7`=last                                                                         |
-| topicCoverChangedState  |                 | Indicated that the cover image has potentially changed. For performance reasons the application should load the image only if it's visible to the user |
-| topicLoudnessCmnd       | 0 -> 21         | Set loudness (depends on minVolume / maxVolume)                                                                                                        |
-| topicLoudnessState      | 0 -> 21         | Sends loudness (depends on minVolume / maxVolume                                                                                                       |
-| topicSleepTimerCmnd     | EOP             | Power off after end to playlist                                                                                                                        |
-|                         | EOT             | Power off after end of track                                                                                                                           |
-|                         | EO5T            | Power off after end of five tracks                                                                                                                     |
-|                         | 1 -> 2^32       | Duration in minutes to power off                                                                                                                       |
-|                         | 0               | Deactivate timer (if active)                                                                                                                           |
-| topicSleepTimerState    | various         | Sends active timer (`EOP`, `EOT`, `EO5T`, `0`, ...)                                                                                                    |
+| topicSleep              | Cmnd: 0 or OFF; State: ON or OFF | Cmnd: power off (send '0' or 'OFF'); State: sends current power state                                                                                 |
+| topicRfid               | Cmnd/State: 12 digits | Cmnd: emulate an RFID tag by sending a 12-digit id (e.g. `123789456089`); State: current RFID tag id                                                   |
+| topicTrack              | String          | State: current track info (e.g. "(2/10) /mp3/.../file.mp3")                                                                                         |
+| topicTrackControl       | 1 -> 9          | Cmnd: playback control (`1`=stop; `3`=play/pause; `4`=next; `5`=prev; `6`=first; `7`=last; `8`=next folder; `9`=previous folder)                     |
+| topicCoverChanged       | (flag)          | State: indicates cover image may have changed (load only if visible)                                                                                |
+| topicLoudness           | Cmnd/State: 0 -> 21 | Set/report loudness (depends on minVolume / maxVolume)                                                                                               |
+| topicSleepTimer         | Cmnd/State: EOP / EOT / EO5T / 1->2^32 / 0 | Cmnd: set sleep timer (EOP/EOT/EO5T or minutes; 0 to deactivate). State: current timer value (e.g. `EOP`, `EOT`, `EO5T`, `0`, ...) |
 | topicState              | Online, Offline | `Online` when powering on, `Offline` when powering off                                                                                                 |
 | topicCurrentIPv4IP      | IPv4-string     | Sends ESPuino's IP-address (e.g. `192.168.2.78`)                                                                                                       |
-| topicLockControlsCmnd   | ON, OFF         | Set if controls (buttons, rotary encoder) should be locked                                                                                             |
-| topicLockControlsState  | ON, OFF         | Sends if controls (buttons, rotary encoder) are locked                                                                                                 |
-| topicPlaymodeState      | 0 - 10          | Sends current playback mode (single track, audiobook...; see [playback modes](#playback-modes))                                                        |
-| topicRepeatModeCmnd     | 0 - 3           | Set repeat-mode: `0`=no; `1`=track; `2`=playlist; `3`=both                                                                                             |
-| topicRepeatModeState    | 0 - 3           | Sends repeat-mode                                                                                                                                      |
-| topicLedBrightnessCmnd  | 0 - 255         | Set brightness of Neopixel                                                                                                                             |
-| topicLedBrightnessState | 0 - 255         | Sends brightness of Neopixel                                                                                                                           |
+| topicPausePlay          | idle, play, pause | Sends playback state: `idle` (no playback), `play` (playing), `pause` (paused)                                                                         |
+| topicLockControls       | Cmnd/State: ON or OFF | Set/report whether physical controls are locked                                                                                                        |
+| topicPlaymode           | 0 - 10          | State: current playback mode (single track, audiobook...; see [playback modes](#playback-modes))                                                        |
+| topicRepeatMode         | Cmnd/State: 0 - 3 | Set/report repeat mode (`0`=no; `1`=track; `2`=playlist; `3`=both)                                                                                    |
+| topicLedBrightness      | Cmnd/State: 0 - 255 | Set/report Neopixel brightness                                                                                                                         |
 | topicBatteryVoltage     | float           | Voltage (e.g. 3.81)                                                                                                                                    |
 | topicBatterySOC         | float           | Current battery charge in percent (e.g. 83.0)                                                                                                          |
-| topicWiFiRssiState      | int             | Numeric WiFi signal-strength (dBm)                                                                                                                     |
-| topicSRevisionState     | String          | Software-revision                                                                                                                                      |
+| topicWiFiRssi           | int             | State: numeric WiFi signal-strength (dBm)                                                                                                             |
+| topicSRevision          | String          | State: software revision string                                                                                                                        |
+
+### REST API
+
+Even [REST API](./REST-API.yaml) is available with various GET, POST, DELETE and PUT-calls.
 
 ## Development and Contributions
 
