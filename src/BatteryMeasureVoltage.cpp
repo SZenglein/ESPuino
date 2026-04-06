@@ -17,6 +17,7 @@ float voltageIndicatorLow = s_voltageIndicatorLow;
 float voltageIndicatorHigh = s_voltageIndicatorHigh;
 
 void Battery_InitInner() {
+	analogSetPinAttenuation(VOLTAGE_READ_PIN, inputAttenuation);
 	// Get voltages from NVS for Neopixel
 	float vLowIndicator = gPrefsSettings.getFloat("vIndicatorLow", 999.99);
 	if (vLowIndicator <= 999) {
