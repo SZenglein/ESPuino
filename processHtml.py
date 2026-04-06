@@ -9,8 +9,13 @@ import os
 import shutil
 import mimetypes
 import gzip
-import json
-Import("env")
+Import("env")  # pylint: disable=undefined-variable
+
+try:
+    from flask_minify.parsers import Parser
+except ImportError:
+  print("Trying to Install required module: flask_minify\nIf this failes, please execute \"pip install flask_minify\" manually.")
+  env.Execute("$PYTHONEXE -m pip install flask_minify")
 
 from flask_minify.parsers import Parser
 import json
