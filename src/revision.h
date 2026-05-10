@@ -2,4 +2,4 @@
 
 #include "gitrevision.h"
 
-constexpr const char softwareRevision[] = "Software-revision: 20260406-1-szenglein";
+constexpr const char softwareRevision[] = "Software-revision: 20260510-1-szenglein";

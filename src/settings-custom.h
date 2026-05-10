@@ -37,7 +37,7 @@
     #define RFID_MISO                       19          // GPIO for master in slave out (RFID)
     #define RFID_SCK                        18          // GPIO for clock-signal (RFID)
 
-    #ifdef RFID_READER_TYPE_PN5180
+    #ifdef RFID_READER_TYPE_RUNTIME
         #define RFID_BUSY                   5          // PN5180 BUSY PIN
         #define RFID_RST                    4          // PN5180 RESET PIN
         #define RFID_IRQ                    33          // PN5180 IRQ PIN (only needed for low power card detection)
